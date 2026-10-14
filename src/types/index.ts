@@ -1,4 +1,4 @@
-export type HomeType = "studio" | "apartment" | "house" | "dorm";
+export type HomeType = "studio" | "apartment" | "house" ;
 export type Furnishing = "furnished" | "unfurnished";
 export type StyleType = "minimal" | "cozy" | "modern" | "classic";
 
@@ -13,6 +13,7 @@ export interface Home {
   style: StyleType;
   worksFromHome: boolean;
   hasPet: boolean;
+  hasGarden: boolean;
   ownedItems: string[];
   createdAt: number;
 }
@@ -30,12 +31,12 @@ export interface Need {
   id: string;
   homeId: string;
   ownerId: string;
-  roomId: string;
+  room: string;
   name: string;
   priority: 1 | 2 | 3;
   estimatedCost: number;
   status: NeedStatus;
-  source: "ai" | "manual";
+  source: "ai" | "template" | "manual";
 }
 
 export interface Expense {

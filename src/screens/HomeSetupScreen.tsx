@@ -15,7 +15,7 @@ import { Furnishing, Home, HomeType, StyleType } from "../types";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Platform } from "react-native";
 
-const HOME_TYPES: HomeType[] = ["studio", "apartment", "house", "dorm"];
+const HOME_TYPES: HomeType[] = ["studio", "apartment", "house"];
 const FURNISHINGS: Furnishing[] = ["unfurnished", "furnished"];
 const STYLES: StyleType[] = ["minimal", "cozy", "modern", "classic"];
 const OWNED_OPTIONS = [
@@ -73,13 +73,14 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   const [style, setStyle] = useState<StyleType>("minimal");
   const [worksFromHome, setWorksFromHome] = useState(false);
   const [hasPet, setHasPet] = useState(false);
+  const [hasGarden, setHasGarden] = useState(false);
   const [ownedItems, setOwnedItems] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const toggleOwned = (item: string) => {
     setOwnedItems((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
     );
   };
 
@@ -118,6 +119,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         worksFromHome,
         hasPet,
         ownedItems,
+        hasGarden,
       });
       onSaved(home);
     } catch {
@@ -134,7 +136,12 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       <Text style={styles.label}>Home type</Text>
       <View style={styles.row}>
         {HOME_TYPES.map((t) => (
-          <Chip key={t} label={t} selected={type === t} onPress={() => setType(t)} />
+          <Chip
+            key={t}
+            label={t}
+            selected={type === t}
+            onPress={() => setType(t)}
+          />
         ))}
       </View>
 
@@ -168,28 +175,37 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       />
 
       <Text style={styles.label}>Move-in date</Text>
-      <TouchableOpacity style={styles.input} onPress={() => setShowPicker(!showPicker)}>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowPicker(!showPicker)}
+      >
         <Text style={{ fontSize: 16, color: moveInDate ? "#000" : "#999" }}>
-            {moveInDate || "Select a date"}
+          {moveInDate || "Select a date"}
         </Text>
       </TouchableOpacity>
       {showPicker && (
         <DateTimePicker
-            value={moveInDate ? new Date(moveInDate) : new Date()}
-            mode="date"
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            minimumDate={new Date()}
-            onChange={(event, selected) => {
-                if (Platform.OS !== "ios") setShowPicker(false);
-                if (event.type === "set" && selected) setMoveInDate(formatDate(selected));
-            }}
+          value={moveInDate ? new Date(moveInDate) : new Date()}
+          mode="date"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          minimumDate={new Date()}
+          onChange={(event, selected) => {
+            if (Platform.OS !== "ios") setShowPicker(false);
+            if (event.type === "set" && selected)
+              setMoveInDate(formatDate(selected));
+          }}
         />
-       )}
+      )}
 
       <Text style={styles.label}>Style</Text>
       <View style={styles.row}>
         {STYLES.map((s) => (
-          <Chip key={s} label={s} selected={style === s} onPress={() => setStyle(s)} />
+          <Chip
+            key={s}
+            label={s}
+            selected={style === s}
+            onPress={() => setStyle(s)}
+          />
         ))}
       </View>
 
@@ -200,6 +216,10 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>I have a pet</Text>
         <Switch value={hasPet} onValueChange={setHasPet} />
+      </View>
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>I have a garden or balcony</Text>
+        <Switch value={hasGarden} onValueChange={setHasGarden} />
       </View>
 
       <Text style={styles.label}>Items you already own</Text>
@@ -216,7 +236,11 @@ export default function HomeSetupScreen({ onSaved }: Props) {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSave}
+        disabled={loading}
+      >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
