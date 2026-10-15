@@ -9,7 +9,7 @@ export interface TemplateItem {
   coveredByFurnished?: boolean;
   onlyForTypes?: HomeType[];
   skipForTypes?: HomeType[];
-  perPerson?: boolean;
+  scale?: "person" | "bedroom" | "room" | "bed";
   workBoost?: boolean;
   onlyIf?: {
     worksFromHome?: boolean;
@@ -20,12 +20,12 @@ export interface TemplateItem {
 }
 
 export const BASE_TEMPLATE: TemplateItem[] = [
-  { name: "Bed and mattress", room: "Bedroom", priority: 1, cost: 15000, ownedKey: "bed", coveredByFurnished: true, perPerson: true },
-  { name: "Bedding set", room: "Bedroom", priority: 1, cost: 1500, ownedKey: "bedding", perPerson: true },
-  { name: "Wardrobe", room: "Bedroom", priority: 2, cost: 10000, ownedKey: "wardrobe", coveredByFurnished: true },
-  { name: "Curtains", room: "Bedroom", priority: 2, cost: 2000 },
-  { name: "Bedside lamp", room: "Bedroom", priority: 3, cost: 700 },
-  { name: "Rug", room: "Bedroom", priority: 3, cost: 1500 },
+  { name: "Bed and mattress", room: "Bedroom", priority: 1, cost: 15000, ownedKey: "bed", coveredByFurnished: true, scale: "bed" },
+  { name: "Bedding set", room: "Bedroom", priority: 1, cost: 1500, ownedKey: "bedding", scale: "bed" },
+  { name: "Wardrobe", room: "Bedroom", priority: 2, cost: 10000, ownedKey: "wardrobe", coveredByFurnished: true, scale: "bedroom" },
+  { name: "Curtains", room: "Bedroom", priority: 2, cost: 2000, scale: "room" },
+  { name: "Bedside lamp", room: "Bedroom", priority: 3, cost: 700, scale: "bedroom" },
+  { name: "Rug", room: "Bedroom", priority: 3, cost: 1500, scale: "room" },
 
   { name: "Refrigerator", room: "Kitchen", priority: 1, cost: 25000, ownedKey: "fridge", coveredByFurnished: true },
   { name: "Oven or cooktop", room: "Kitchen", priority: 1, cost: 8000, ownedKey: "oven", coveredByFurnished: true },
@@ -41,7 +41,7 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Storage shelves", room: "Living room", priority: 2, cost: 2500, onlyForTypes: ["studio"] },
 
   { name: "Washing machine", room: "Bathroom", priority: 1, cost: 23000, ownedKey: "washing machine", coveredByFurnished: true },
-  { name: "Towels", room: "Bathroom", priority: 1, cost: 800, perPerson: true },
+  { name: "Towels", room: "Bathroom", priority: 1, cost: 800, scale: "person" },
   { name: "Shower curtain and bath mat", room: "Bathroom", priority: 2, cost: 700 },
   { name: "Laundry basket", room: "Bathroom", priority: 3, cost: 400 },
 

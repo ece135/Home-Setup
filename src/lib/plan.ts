@@ -2,7 +2,22 @@ import { Home, Need } from "../types";
 import { BASE_TEMPLATE } from "../data/baseTemplate";
 
 export type NeedDraft = Omit<Need, "id" | "homeId" | "ownerId">;
+import { TemplateItem } from "../data/baseTemplate";
 
+function getQuantity(item: TemplateItem, home: Home): number {
+  switch (item.scale) {
+    case "person":
+      return home.peopleCount;
+    case "bedroom":
+      return home.bedrooms;
+    case "room":
+      return Math.max(1, home.bedrooms + home.livingRooms);
+    case "bed":
+      return Math.max(1, Math.min(home.peopleCount, home.bedrooms));
+    default:
+      return 1;
+  }
+}
 export function generatePlan(home: Home): NeedDraft[] {
   const owned = new Set(home.ownedItems);
   const drafts: NeedDraft[] = [];
@@ -20,11 +35,12 @@ export function generatePlan(home: Home): NeedDraft[] {
     let priority: number = item.priority;
     if (item.workBoost && home.worksFromHome) priority = Math.min(priority, 2);
 
+    const quantity = getQuantity(item, home);
     drafts.push({
-      name: item.name,
+      name: quantity > 1 ? `${item.name} x${quantity}` : item.name,
       room: item.room,
       priority: priority as 1 | 2 | 3,
-      estimatedCost: item.perPerson ? item.cost * home.peopleCount : item.cost,
+      estimatedCost: item.cost * quantity,
       status: "planned",
       source: "template",
     });

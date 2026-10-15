@@ -8,6 +8,8 @@ export interface Home {
   type: HomeType;
   furnishing: Furnishing;
   peopleCount: number;
+  bedrooms: number;
+  livingRooms: number;
   budget: number;
   moveInDate: string;
   style: StyleType;

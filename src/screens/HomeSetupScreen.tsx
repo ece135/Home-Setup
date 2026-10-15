@@ -18,6 +18,7 @@ import { Platform } from "react-native";
 const HOME_TYPES: HomeType[] = ["studio", "apartment", "house"];
 const FURNISHINGS: Furnishing[] = ["unfurnished", "furnished"];
 const STYLES: StyleType[] = ["minimal", "cozy", "modern", "classic"];
+const LAYOUTS = ["1+1", "2+1", "3+1", "4+1"];
 const OWNED_OPTIONS = [
   "bed",
   "sofa",
@@ -77,6 +78,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   const [ownedItems, setOwnedItems] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [layout, setLayout] = useState("1+1");
 
   const toggleOwned = (item: string) => {
     setOwnedItems((prev) =>
@@ -100,6 +102,9 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       setError("Please select a move-in date.");
       return;
     }
+    const [layoutBedrooms, layoutLiving] = layout.split("+").map(Number);
+    const bedrooms = type === "studio" ? 1 : layoutBedrooms;
+    const livingRooms = type === "studio" ? 0 : layoutLiving;
     const user = auth.currentUser;
     if (!user) {
       setError("You are not signed in.");
@@ -113,6 +118,8 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         type,
         furnishing,
         peopleCount: people,
+        bedrooms,
+        livingRooms,
         budget: budgetNumber,
         moveInDate,
         style,
@@ -233,6 +240,21 @@ export default function HomeSetupScreen({ onSaved }: Props) {
           />
         ))}
       </View>
+      {type !== "studio" && (
+        <>
+          <Text style={styles.label}>Layout (bedrooms + living rooms)</Text>
+          <View style={styles.row}>
+            {LAYOUTS.map((l) => (
+              <Chip
+                key={l}
+                label={l}
+                selected={layout === l}
+                onPress={() => setLayout(l)}
+              />
+            ))}
+          </View>
+        </>
+      )}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
