@@ -36,14 +36,19 @@ export function generatePlan(home: Home): NeedDraft[] {
     if (item.workBoost && home.worksFromHome) priority = Math.min(priority, 2);
 
     const quantity = getQuantity(item, home);
-    drafts.push({
+    const unitCost = item.options ? item.options[0].cost : item.cost;
+
+    const draft: NeedDraft = {
       name: quantity > 1 ? `${item.name} x${quantity}` : item.name,
       room: item.room,
-      priority: priority as 1 | 2 | 3,
-      estimatedCost: item.cost * quantity,
+      priority: priority as 1 | 2 | 3 | 4,
+      estimatedCost: unitCost * quantity,
       status: "planned",
       source: "template",
-    });
+    };
+    if (item.options) draft.selectedOption = item.options[0].label;
+
+    drafts.push(draft);
   }
 
   return drafts.sort(

@@ -176,7 +176,6 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       <TextInput
         style={styles.input}
         keyboardType="decimal-pad"
-        placeholder="e.g. 50000"
         value={budget}
         onChangeText={setBudget}
       />

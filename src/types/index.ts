@@ -35,10 +35,11 @@ export interface Need {
   ownerId: string;
   room: string;
   name: string;
-  priority: 1 | 2 | 3;
+  priority: 1 | 2 | 3 | 4;
   estimatedCost: number;
   status: NeedStatus;
   source: "ai" | "template" | "manual";
+  selectedOption?: string;
 }
 
 export interface Expense {

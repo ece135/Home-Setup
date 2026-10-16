@@ -1,8 +1,11 @@
 import {
+  addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   query,
+  updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -31,4 +34,34 @@ export async function getNeeds(home: Home): Promise<Need[]> {
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Need, "id">) }));
+}
+
+export interface NewNeedInput {
+  name: string;
+  room: string;
+  priority: 1 | 2 | 3 | 4;
+  estimatedCost: number;
+}
+
+export async function addNeed(home: Home, input: NewNeedInput): Promise<Need> {
+  const data = {
+    ...input,
+    homeId: home.id,
+    ownerId: home.ownerId,
+    status: "planned" as const,
+    source: "manual" as const,
+  };
+  const ref = await addDoc(collection(db, "needs"), data);
+  return { id: ref.id, ...data };
+}
+
+export async function updateNeed(
+  id: string,
+  changes: Partial<Pick<Need, "status" | "estimatedCost" | "selectedOption" | "priority">>
+): Promise<void> {
+  await updateDoc(doc(db, "needs", id), changes);
+}
+
+export async function deleteNeed(id: string): Promise<void> {
+  await deleteDoc(doc(db, "needs", id));
 }
