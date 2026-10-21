@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { updateHome } from "../lib/homes";
 import { Expense, Home, Need, NeedStatus } from "../types";
 import { BASE_TEMPLATE } from "../data/baseTemplate";
 import { generatePlan } from "../lib/plan";
@@ -68,11 +69,21 @@ function SmallChip({
   );
 }
 
-export default function NeedsScreen({ home }: { home: Home }) {
+export default function NeedsScreen({
+  home,
+  onHomeUpdated,
+}: {
+  home: Home;
+  onHomeUpdated: (home: Home) => void;
+}) {
   const [needs, setNeeds] = useState<Need[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [newBudget, setNewBudget] = useState(String(home.budget));
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -112,7 +123,9 @@ export default function NeedsScreen({ home }: { home: Home }) {
   }, [home]);
 
   const patchLocal = (id: string, changes: Partial<Need>) => {
-    setNeeds((prev) => prev.map((n) => (n.id === id ? { ...n, ...changes } : n)));
+    setNeeds((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, ...changes } : n)),
+    );
   };
 
   const linkedExpenses = (needId: string) =>
@@ -162,7 +175,10 @@ export default function NeedsScreen({ home }: { home: Home }) {
 
   const handleOption = async (need: Need, label: string, cost: number) => {
     if (need.selectedOption === label) return;
-    const previous = { selectedOption: need.selectedOption, estimatedCost: need.estimatedCost };
+    const previous = {
+      selectedOption: need.selectedOption,
+      estimatedCost: need.estimatedCost,
+    };
     patchLocal(need.id, { selectedOption: label, estimatedCost: cost });
     try {
       await updateNeed(need.id, { selectedOption: label, estimatedCost: cost });
@@ -232,7 +248,10 @@ export default function NeedsScreen({ home }: { home: Home }) {
     }
     setExpError("");
     try {
-      const created = await addExpense(home, { title: expTitle.trim(), amount });
+      const created = await addExpense(home, {
+        title: expTitle.trim(),
+        amount,
+      });
       setExpenses((prev) => [...prev, created]);
       setExpTitle("");
       setExpAmount("");
@@ -241,6 +260,51 @@ export default function NeedsScreen({ home }: { home: Home }) {
       setExpError("Could not save. Check your connection.");
     }
   };
+
+  const handleUpdateBudget = async () => {
+    const amount = Number(newBudget.replace(",", "."));
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setBudgetError("Enter a valid budget.");
+      return;
+    }
+
+    if (!auth.currentUser) {
+      setBudgetError("You are not signed in.");
+      return;
+    }
+
+    setBudgetError("");
+    setBudgetLoading(true);
+
+  try {
+    const updatedHome = await updateHome(home.id, auth.currentUser.uid, {
+      type: home.type,
+      furnishing: home.furnishing,
+      peopleCount: home.peopleCount,
+      bedrooms: home.bedrooms,
+      livingRooms: home.livingRooms,
+      budget: amount,
+      moveInDate: home.moveInDate,
+      style: home.style,
+      worksFromHome: home.worksFromHome,
+      hasPet: home.hasPet,
+      hasGarden: home.hasGarden,
+      ownedItems: home.ownedItems,
+    });
+
+    onHomeUpdated(updatedHome);
+    setNewBudget(String(amount));
+    setEditingBudget(false);
+    setBudgetError("");
+  } catch (e) {
+    setBudgetError(
+      e instanceof Error ? e.message : "Could not update the budget."
+    );
+  } finally {
+    setBudgetLoading(false);
+}
+    };
 
   const handleDeleteExpense = (expense: Expense) => {
     Alert.alert("Remove expense", `Remove "${expense.title}"?`, [
@@ -280,14 +344,30 @@ export default function NeedsScreen({ home }: { home: Home }) {
         <View>
           <Text style={styles.summaryLabel}>Budget</Text>
           <Text style={styles.summaryValue}>{money(home.budget)}</Text>
+
+          <TouchableOpacity
+            onPress={() => {
+              setNewBudget(String(home.budget));
+              setBudgetError("");
+              setEditingBudget((prev) => !prev);
+            }}
+          >
+            <Text style={styles.addButtonText}>
+              {editingBudget ? "Cancel" : "Edit budget"}
+            </Text>
+          </TouchableOpacity>
         </View>
         <View>
           <Text style={styles.summaryLabel}>Planned</Text>
-          <Text style={styles.summaryValue}>{money(getPlannedTotal(needs))}</Text>
+          <Text style={styles.summaryValue}>
+            {money(getPlannedTotal(needs))}
+          </Text>
         </View>
         <View>
           <Text style={styles.summaryLabel}>Spent</Text>
-          <Text style={styles.summaryValue}>{money(getSpentTotal(expenses))}</Text>
+          <Text style={styles.summaryValue}>
+            {money(getSpentTotal(expenses))}
+          </Text>
         </View>
         <View>
           <Text style={styles.summaryLabel}>Remaining</Text>
@@ -307,6 +387,34 @@ export default function NeedsScreen({ home }: { home: Home }) {
         </View>
       </View>
 
+      {editingBudget ? (
+        <View style={styles.form}>
+          <Text style={styles.groupTitle}>Update your budget</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="New budget (₺)"
+            keyboardType="decimal-pad"
+            value={newBudget}
+            onChangeText={setNewBudget}
+          />
+
+          {budgetError ? <Text style={styles.over}>{budgetError}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleUpdateBudget}
+            disabled={budgetLoading}
+          >
+            {budgetLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Save budget</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {unplanned > 0 ? (
         <Text style={styles.unplannedNote}>
           Unplanned spending so far: {money(unplanned)}
@@ -323,13 +431,17 @@ export default function NeedsScreen({ home }: { home: Home }) {
             <Text style={styles.groupTitle}>{group.title}</Text>
             {items.map((n) => {
               const templateItem = BASE_TEMPLATE.find(
-                (t) => t.name === n.name && t.options
+                (t) => t.name === n.name && t.options,
               );
               const actual = linkedExpenses(n.id)[0];
               const inactive =
-                n.status === STATUSES[2].value || n.status === STATUSES[3].value;
+                n.status === STATUSES[2].value ||
+                n.status === STATUSES[3].value;
               return (
-                <View key={n.id} style={[styles.card, inactive && styles.inactive]}>
+                <View
+                  key={n.id}
+                  style={[styles.card, inactive && styles.inactive]}
+                >
                   <View style={styles.cardTop}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.name}>{n.name}</Text>
@@ -360,7 +472,10 @@ export default function NeedsScreen({ home }: { home: Home }) {
                       <SmallChip
                         key={s.value}
                         label={s.label}
-                        selected={n.status === s.value || (buyingId === n.id && s.value === "purchased")}
+                        selected={
+                          n.status === s.value ||
+                          (buyingId === n.id && s.value === "purchased")
+                        }
                         onPress={() => handleStatus(n, s.value)}
                       />
                     ))}
@@ -375,7 +490,9 @@ export default function NeedsScreen({ home }: { home: Home }) {
                         value={buyPrice}
                         onChangeText={setBuyPrice}
                       />
-                      {buyError ? <Text style={styles.over}>{buyError}</Text> : null}
+                      {buyError ? (
+                        <Text style={styles.over}>{buyError}</Text>
+                      ) : null}
                       <View style={styles.buyActions}>
                         <TouchableOpacity
                           style={styles.smallButton}
@@ -441,7 +558,10 @@ export default function NeedsScreen({ home }: { home: Home }) {
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowForm(true)}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowForm(true)}
+        >
           <Text style={styles.addButtonText}>+ Add an item</Text>
         </TouchableOpacity>
       )}
@@ -535,7 +655,12 @@ const styles = StyleSheet.create({
   progressFill: { height: 8, backgroundColor: "#1f6f6b", borderRadius: 4 },
   unplannedNote: { marginTop: 10, fontSize: 13, color: "#b26a00" },
   over: { color: "#c62828" },
-  groupTitle: { fontSize: 18, fontWeight: "700", marginTop: 24, marginBottom: 8 },
+  groupTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 24,
+    marginBottom: 8,
+  },
   card: {
     borderWidth: 1,
     borderColor: "#eee",
@@ -565,7 +690,12 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
   },
-  buyActions: { flexDirection: "row", alignItems: "center", gap: 16, marginTop: 10 },
+  buyActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 10,
+  },
   smallButton: {
     backgroundColor: "#1f6f6b",
     paddingVertical: 8,
@@ -609,5 +739,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   expenseRemove: { color: "#c62828", fontSize: 16, paddingHorizontal: 4 },
-  logout: { textAlign: "center", color: "#1f6f6b", marginTop: 32, marginBottom: 40 },
+  logout: {
+    textAlign: "center",
+    color: "#1f6f6b",
+    marginTop: 32,
+    marginBottom: 40,
+  },
 });

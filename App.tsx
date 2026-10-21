@@ -48,5 +48,5 @@ export default function App() {
     return <HomeSetupScreen onSaved={setHome} />;
   }
 
-  return <NeedsScreen home={home} />;
+  return <NeedsScreen home={home} onHomeUpdated={setHome} />;
 }
