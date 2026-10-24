@@ -55,7 +55,7 @@ export default function AuthScreen() {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (e: any) {
-      setError(getErrorMessage(e.code));
+      setError(`${getErrorMessage(e.code)} [${e.code ?? e.message}]`);
     } finally {
       setLoading(false);
     }

@@ -14,7 +14,7 @@ import { auth } from "../lib/firebase";
 import { updateHome } from "../lib/homes";
 import { Expense, Home, Need, NeedStatus } from "../types";
 import { BASE_TEMPLATE } from "../data/baseTemplate";
-import { generatePlan } from "../lib/plan";
+import { generateAIPlan } from "../lib/aiPlan";
 import { addNeed, getNeeds, saveNeeds, updateNeed } from "../lib/needs";
 import {
   addExpense,
@@ -102,24 +102,47 @@ export default function NeedsScreen({
   const [expError, setExpError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
       try {
-        let [list, expenseList] = await Promise.all([
+        const [existingNeeds, expenseList] = await Promise.all([
           getNeeds(home),
           getExpenses(home),
         ]);
+
+        let list = existingNeeds;
+
         if (list.length === 0) {
-          list = await saveNeeds(home, generatePlan(home));
+          const drafts = await generateAIPlan(home);
+
+          if (cancelled) return;
+
+          list = await saveNeeds(home, drafts);
         }
+
+        if (cancelled) return;
+
         setNeeds(list);
         setExpenses(expenseList);
-      } catch {
-        setError("Could not load your plan. Check your connection.");
+      } catch (error) {
+        console.error("Plan loading failed:", error);
+
+        if (!cancelled) {
+          setError("Could not load your plan. Check your connection.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
+
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [home]);
 
   const patchLocal = (id: string, changes: Partial<Need>) => {
@@ -277,34 +300,34 @@ export default function NeedsScreen({
     setBudgetError("");
     setBudgetLoading(true);
 
-  try {
-    const updatedHome = await updateHome(home.id, auth.currentUser.uid, {
-      type: home.type,
-      furnishing: home.furnishing,
-      peopleCount: home.peopleCount,
-      bedrooms: home.bedrooms,
-      livingRooms: home.livingRooms,
-      budget: amount,
-      moveInDate: home.moveInDate,
-      style: home.style,
-      worksFromHome: home.worksFromHome,
-      hasPet: home.hasPet,
-      hasGarden: home.hasGarden,
-      ownedItems: home.ownedItems,
-    });
+    try {
+      const updatedHome = await updateHome(home.id, auth.currentUser.uid, {
+        type: home.type,
+        furnishing: home.furnishing,
+        peopleCount: home.peopleCount,
+        bedrooms: home.bedrooms,
+        livingRooms: home.livingRooms,
+        budget: amount,
+        moveInDate: home.moveInDate,
+        style: home.style,
+        worksFromHome: home.worksFromHome,
+        hasPet: home.hasPet,
+        hasGarden: home.hasGarden,
+        ownedItems: home.ownedItems,
+      });
 
-    onHomeUpdated(updatedHome);
-    setNewBudget(String(amount));
-    setEditingBudget(false);
-    setBudgetError("");
-  } catch (e) {
-    setBudgetError(
-      e instanceof Error ? e.message : "Could not update the budget."
-    );
-  } finally {
-    setBudgetLoading(false);
-}
-    };
+      onHomeUpdated(updatedHome);
+      setNewBudget(String(amount));
+      setEditingBudget(false);
+      setBudgetError("");
+    } catch (e) {
+      setBudgetError(
+        e instanceof Error ? e.message : "Could not update the budget.",
+      );
+    } finally {
+      setBudgetLoading(false);
+    }
+  };
 
   const handleDeleteExpense = (expense: Expense) => {
     Alert.alert("Remove expense", `Remove "${expense.title}"?`, [
@@ -446,6 +469,11 @@ export default function NeedsScreen({
                     <View style={{ flex: 1 }}>
                       <Text style={styles.name}>{n.name}</Text>
                       <Text style={styles.room}>{n.room}</Text>
+                      {n.source === "ai" ? (
+                        <Text style={styles.aiNote}>
+                          AI suggestion{n.reason ? `: ${n.reason}` : ""}
+                        </Text>
+                      ) : null}
                     </View>
                     <Text style={styles.cost}>
                       {n.status === "purchased" && actual
@@ -672,6 +700,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: "row", alignItems: "center" },
   name: { fontSize: 16, fontWeight: "600" },
   room: { fontSize: 13, color: "#888", marginTop: 2 },
+  aiNote: { fontSize: 12, color: "#1f6f6b", marginTop: 4 },
   cost: { fontSize: 15, fontWeight: "600" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   chip: {

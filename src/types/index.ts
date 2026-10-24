@@ -40,6 +40,7 @@ export interface Need {
   status: NeedStatus;
   source: "ai" | "template" | "manual";
   selectedOption?: string;
+  reason?: string;
 }
 
 export interface Expense {

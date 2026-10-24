@@ -4,27 +4,46 @@ import type { Persistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+console.log("firebase env:", {
+  apiKey: !!process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  projectId: !!process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: !!process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+});
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAdVuXhNry7L6xFvEfAV-00ksH9ZTW52zE",
-  authDomain: "homesetup-43a4a.firebaseapp.com",
-  projectId: "homesetup-43a4a",
-  storageBucket: "homesetup-43a4a.firebasestorage.app",
-  messagingSenderId: "288436915190",
-  appId: "1:288436915190:web:a9e2bd71e349fd8db415d7",
-  measurementId: "G-NQWDJZEZEL"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
 const getReactNativePersistence = (
   FirebaseAuth as unknown as {
-    getReactNativePersistence: (
-      storage: typeof AsyncStorage
-    ) => Persistence;
+    getReactNativePersistence: (storage: typeof AsyncStorage) => Persistence;
   }
 ).getReactNativePersistence;
 
-export const auth = FirebaseAuth.initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+function createAuth() {
+  try {
+    return FirebaseAuth.initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.toLowerCase().includes("already")
+    ) {
+      return FirebaseAuth.getAuth(app);
+    }
 
+    throw error;
+  }
+}
+
+export const auth = createAuth();
 export const db = getFirestore(app);
