@@ -1,5 +1,6 @@
 import { Home } from "../types";
 import { NeedDraft, generatePlan } from "./plan";
+import { fitToBudget } from "./budgetFit";
 
 const TIMEOUT_MS = 30000;
 
@@ -94,11 +95,10 @@ export async function generateAIPlan(home: Home): Promise<NeedDraft[]> {
 
   try {
     const extras = await fetchExtras(home, base);
-    return [...base, ...extras].sort(
-      (a, b) => a.priority - b.priority || a.room.localeCompare(b.room),
-    );
+    const combined = [...base, ...extras];
+    return fitToBudget(combined, home.budget).drafts;
   } catch (error) {
     console.error("AI suggestions failed, using the template plan:", error);
-    return base;
+    return fitToBudget(base, home.budget).drafts;
   }
 }

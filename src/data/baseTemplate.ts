@@ -47,7 +47,7 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Storage shelves", room: "Living room", priority: 3, cost: 2500, onlyForTypes: ["studio"] },
 
   { name: "Washing machine", room: "Bathroom", priority: 1, cost: 23000, ownedKey: "washing machine", coveredByFurnished: true },
-  { name: "Towels", room: "Bathroom", priority: 1, cost: 800, scale: "person" },
+  { name: "Towels", room: "Bathroom", priority: 1, cost: 300, scale: "person" },
   { name: "Bath mat", room: "Bathroom", priority: 2, cost: 700 },
   { name: "Laundry basket", room: "Bathroom", priority: 3, cost: 400 },
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -439,6 +438,17 @@ export default function NeedsScreen({
         </View>
       ) : null}
 
+      {needs.some((n) => n.status === "deferred") ? (
+        <Text style={styles.deferredNote}>
+          {needs.filter((n) => n.status === "deferred").length} items are on
+          Later. Move one back to Planned when your budget allows.
+        </Text>
+      ) : null}
+
+      {remaining < 0 ? (
+        <Text style={styles.over}>Planned items are above your budget.</Text>
+      ) : null}
+
       {unplanned > 0 ? (
         <Text style={styles.unplannedNote}>
           Unplanned spending so far: {money(unplanned)}
@@ -683,6 +693,7 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: 8, backgroundColor: "#1f6f6b", borderRadius: 4 },
   unplannedNote: { marginTop: 10, fontSize: 13, color: "#b26a00" },
+  deferredNote: { marginTop: 10, fontSize: 13, color: "#1f6f6b" },
   over: { color: "#c62828" },
   groupTitle: {
     fontSize: 18,
