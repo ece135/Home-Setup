@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createElement, useState } from "react";
 import {
   View,
   Text,
@@ -55,62 +55,62 @@ export default function AuthScreen() {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (e: any) {
-      setError(`${getErrorMessage(e.code)} [${e.code ?? e.message}]`);
+      setError(getErrorMessage(e.code));
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={styles.title}>Home Setup</Text>
-      <Text style={styles.subtitle}>
-        {isSignUp ? "Create your account" : "Welcome back"}
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>
-            {isSignUp ? "Sign up" : "Log in"}
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
-        <Text style={styles.switchText}>
-          {isSignUp
-            ? "Already have an account? Log in"
-            : "No account yet? Sign up"}
-        </Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+  return createElement(
+    KeyboardAvoidingView,
+    {
+      style: styles.container,
+      behavior: Platform.OS === "ios" ? "padding" : undefined,
+    },
+    createElement(Text, { style: styles.title }, "Home Setup"),
+    createElement(
+      Text,
+      { style: styles.subtitle },
+      isSignUp ? "Create your account" : "Welcome back",
+    ),
+    createElement(TextInput, {
+      style: styles.input,
+      placeholder: "Email",
+      autoCapitalize: "none",
+      keyboardType: "email-address",
+      value: email,
+      onChangeText: setEmail,
+    }),
+    createElement(TextInput, {
+      style: styles.input,
+      placeholder: "Password",
+      secureTextEntry: true,
+      value: password,
+      onChangeText: setPassword,
+    }),
+    error ? createElement(Text, { style: styles.error }, error) : null,
+    createElement(
+      TouchableOpacity,
+      { style: styles.button, onPress: handleSubmit, disabled: loading },
+      loading
+        ? createElement(ActivityIndicator, { color: "#fff" })
+        : createElement(
+            Text,
+            { style: styles.buttonText },
+            isSignUp ? "Sign up" : "Log in",
+          ),
+    ),
+    createElement(
+      TouchableOpacity,
+      { onPress: () => setIsSignUp(!isSignUp) },
+      createElement(
+        Text,
+        { style: styles.switchText },
+        isSignUp
+          ? "Already have an account? Log in"
+          : "No account yet? Sign up",
+      ),
+    ),
   );
 }
 

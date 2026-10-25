@@ -1,7 +1,7 @@
 import { Home } from "../types";
 import { NeedDraft, generatePlan } from "./plan";
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 30000;
 
 interface AIItem {
   name: unknown;
