@@ -44,7 +44,7 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "TV", room: "Living room", priority: 3, cost: 12000, ownedKey: "TV" },
   { name: "TV unit", room: "Living room", priority: 3, cost: 8000 },
   { name: "Coffee table", room: "Living room", priority: 4, cost: 2500, skipForTypes: ["studio"] },
-  { name: "Storage shelves", room: "Living room", priority: 3, cost: 2500, onlyForTypes: ["studio"] },
+  { name: "Storage shelves", room: "Living room", priority: 3, cost: 1500, onlyForTypes: ["studio"] },
 
   { name: "Washing machine", room: "Bathroom", priority: 1, cost: 23000, ownedKey: "washing machine", coveredByFurnished: true },
   { name: "Towels", room: "Bathroom", priority: 1, cost: 300, scale: "person" },
@@ -57,11 +57,11 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Vacuum cleaner", room: "General", priority: 2, cost: 4000 },
   { name: "Iron", room: "General", priority: 3, cost: 3000 },
   { name: "Ironing board", room: "General", priority: 4, cost: 1000 },
-  { name: "tool kit", room: "General", priority: 3, cost: 1500 },
+  { name: "tool kit", room: "General", priority: 3, cost: 1200 },
   { name: "ladder", room: "General", priority: 4, cost: 2000 },
 
 
-  { name: "Desk", room: "Workspace", priority: 3, cost: 4000, ownedKey: "desk", workBoost: true },
+  { name: "Desk", room: "Workspace", priority: 3, cost: 2500, ownedKey: "desk", workBoost: true },
   { name: "Office chair", room: "Workspace", priority: 3, cost: 4500, workBoost: true, onlyIf: { worksFromHome: true } },
 
   { name: "Outdoor table and chairs", room: "Outdoor", priority: 4, cost: 5000, onlyIf: { hasGarden: true } },
@@ -71,4 +71,7 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Food and water bowls", room: "Pet", priority: 1, cost: 300, onlyIf: { hasPet: true } },
   { name: "Pet bed", room: "Pet", priority: 4, cost: 800, onlyIf: { hasPet: true } },
   { name: "Carrier", room: "Pet", priority: 4, cost: 900, onlyIf: { hasPet: true } },
+  { name: "Pet toys", room: "Pet", priority: 4, cost: 400, onlyIf: { hasPet: true } },
+  { name: "Lint roller", room: "Pet", priority: 4, cost: 100, onlyIf: { hasPet: true } },
 ];
+

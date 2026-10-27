@@ -41,6 +41,8 @@ export interface Need {
   source: "ai" | "template" | "manual";
   selectedOption?: string;
   reason?: string;
+  autoDeferred?: boolean;
+  searchTerm?: string;
 }
 
 export interface Expense {

@@ -44,7 +44,7 @@ export function fitToBudget(drafts: NeedDraft[], budget: number): FitResult {
       } else {
         blocked = true;
         deferredCount += 1;
-        result.push({ ...item, status: "deferred" });
+        result.push({ ...item, status: "deferred", autoDeferred: true });
       }
     }
     blocked = true;

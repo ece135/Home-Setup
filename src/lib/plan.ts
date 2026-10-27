@@ -3,6 +3,7 @@ import { BASE_TEMPLATE } from "../data/baseTemplate";
 
 export type NeedDraft = Omit<Need, "id" | "homeId" | "ownerId">;
 import { TemplateItem } from "../data/baseTemplate";
+import { SEARCH_TERMS } from "../data/searchTerms";
 
 function getQuantity(item: TemplateItem, home: Home): number {
   switch (item.scale) {
@@ -45,6 +46,8 @@ export function generatePlan(home: Home): NeedDraft[] {
       estimatedCost: unitCost * quantity,
       status: "planned",
       source: "template",
+      autoDeferred: false,
+      searchTerm: SEARCH_TERMS[item.name] ?? item.name
     };
     if (item.options) draft.selectedOption = item.options[0].label;
 

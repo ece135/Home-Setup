@@ -10,7 +10,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Home, Need } from "../types";
+import { Home, Need, NeedStatus } from "../types";
 import { NeedDraft } from "./plan";
 
 export async function saveNeeds(home: Home, drafts: NeedDraft[]): Promise<Need[]> {
@@ -57,11 +57,24 @@ export async function addNeed(home: Home, input: NewNeedInput): Promise<Need> {
 
 export async function updateNeed(
   id: string,
-  changes: Partial<Pick<Need, "status" | "estimatedCost" | "selectedOption" | "priority">>
+  changes: Partial<Pick<Need, "status" | "estimatedCost" | "selectedOption" | "priority" | "autoDeferred" | "searchTerm">>
 ): Promise<void> {
   await updateDoc(doc(db, "needs", id), changes);
 }
 
 export async function deleteNeed(id: string): Promise<void> {
   await deleteDoc(doc(db, "needs", id));
+}
+
+export async function updateNeedsBatch(
+  changes: { id: string; status: NeedStatus; autoDeferred: boolean }[]
+): Promise<void> {
+  const batch = writeBatch(db);
+  for (const c of changes) {
+    batch.update(doc(db, "needs", c.id), {
+      status: c.status,
+      autoDeferred: c.autoDeferred,
+    });
+  }
+  await batch.commit();
 }

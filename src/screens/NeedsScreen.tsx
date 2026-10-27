@@ -15,7 +15,6 @@ import { updateHome } from "../lib/homes";
 import { Expense, Home, Need, NeedStatus } from "../types";
 import { BASE_TEMPLATE } from "../data/baseTemplate";
 import { generateAIPlan } from "../lib/aiPlan";
-import { addNeed, getNeeds, saveNeeds, updateNeed } from "../lib/needs";
 import {
   addExpense,
   deleteExpense,
@@ -31,6 +30,15 @@ import {
   getSpentTotal,
   getUnplannedTotal,
 } from "../lib/budget";
+import {
+  addNeed,
+  getNeeds,
+  saveNeeds,
+  updateNeed,
+  updateNeedsBatch,
+} from "../lib/needs";
+import { refitStatuses } from "../lib/refit";
+import { STORES, openStore } from "../lib/storeLinks";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 1, title: "Essentials" },
@@ -84,6 +92,7 @@ export default function NeedsScreen({
   const [newBudget, setNewBudget] = useState(String(home.budget));
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [budgetError, setBudgetError] = useState("");
+  const [refitNote, setRefitNote] = useState("");
 
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -171,9 +180,9 @@ export default function NeedsScreen({
         await undoPurchase(need, status, linkedExpenses(need.id));
         setExpenses((prev) => prev.filter((e) => e.needId !== need.id));
       } else {
-        await updateNeed(need.id, { status });
+        await updateNeed(need.id, { status, autoDeferred: false });
       }
-      patchLocal(need.id, { status });
+      patchLocal(need.id, { status, autoDeferred: false });
     } catch {
       setError("Could not update. Check your connection.");
     }
@@ -315,7 +324,26 @@ export default function NeedsScreen({
         hasGarden: home.hasGarden,
         ownedItems: home.ownedItems,
       });
-
+      const changes = refitStatuses(needs, amount, getSpentTotal(expenses));
+      if (changes.length > 0) {
+        await updateNeedsBatch(changes);
+        setNeeds((prev) =>
+          prev.map((n) => {
+            const c = changes.find((x) => x.id === n.id);
+            return c
+              ? { ...n, status: c.status, autoDeferred: c.autoDeferred }
+              : n;
+          }),
+        );
+      }
+      const movedLater = changes.filter((c) => c.status === "deferred").length;
+      const movedBack = changes.length - movedLater;
+      const parts: string[] = [];
+      if (movedLater > 0) parts.push(`${movedLater} moved to Later`);
+      if (movedBack > 0) parts.push(`${movedBack} moved back to Planned`);
+      setRefitNote(
+        parts.length > 0 ? `Budget updated: ${parts.join(", ")}.` : "",
+      );
       onHomeUpdated(updatedHome);
       setNewBudget(String(amount));
       setEditingBudget(false);
@@ -437,7 +465,7 @@ export default function NeedsScreen({
           </TouchableOpacity>
         </View>
       ) : null}
-
+      {refitNote ? <Text style={styles.deferredNote}>{refitNote}</Text> : null}
       {needs.some((n) => n.status === "deferred") ? (
         <Text style={styles.deferredNote}>
           {needs.filter((n) => n.status === "deferred").length} items are on
@@ -501,6 +529,22 @@ export default function NeedsScreen({
                           label={`${o.label} · ${money(o.cost)}`}
                           selected={n.selectedOption === o.label}
                           onPress={() => handleOption(n, o.label, o.cost)}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+
+                  {n.status === "planned" || n.status === "deferred" ? (
+                    <View style={styles.chipRow}>
+                      <Text style={styles.room}>Find online:</Text>
+                      {STORES.map((s) => (
+                        <SmallChip
+                          key={s.id}
+                          label={s.label}
+                          selected={false}
+                          onPress={() =>
+                            openStore(s, n.searchTerm?.trim() || n.name)
+                          }
                         />
                       ))}
                     </View>
