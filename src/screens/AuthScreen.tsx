@@ -15,14 +15,43 @@ import {
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
-function getErrorMessage(code: string): string {
+function getErrorMessage(code: string, errorMessage = ""): string {
   switch (code) {
     case "auth/invalid-email":
       return "Please enter a valid email address.";
     case "auth/email-already-in-use":
-      return "This email is already registered.";
+      return "Invalid email or password.";
     case "auth/weak-password":
-      return "Password must be at least 6 characters.";
+      return "Password must be at least 7 characters and include uppercase, lowercase letters and numbers.";
+    case "auth/password-does-not-meet-requirements": {
+      const message = errorMessage.toLowerCase();
+
+      const missingRequirements: string[] = [];
+
+      if (message.includes("uppercase") || message.includes("upper case")) {
+        missingRequirements.push("an uppercase letter");
+      }
+
+      if (message.includes("lowercase") || message.includes("lower case")) {
+        missingRequirements.push("a lowercase letter");
+      }
+      if (message.includes("numeric") || message.includes("number")) {
+        missingRequirements.push("a number");
+      }
+
+      if (
+        message.includes("at least") &&
+        (message.includes("character") || message.includes("length"))
+      ) {
+        missingRequirements.push("at least 7 characters");
+      }
+
+      if (missingRequirements.length > 0) {
+        return `Password must contain ${missingRequirements.join(", ")}.`;
+      }
+
+      return "Password does not meet the security requirements.";
+    }
     case "auth/invalid-credential":
     case "auth/user-not-found":
     case "auth/wrong-password":
@@ -46,8 +75,32 @@ export default function AuthScreen() {
       setError("Please fill in all fields.");
       return;
     }
+
+    if (isSignUp) {
+      if (password.length < 7) {
+        setError("Password must be at least 7 characters long.");
+        return;
+      }
+
+      if (!/[A-Z]/.test(password)) {
+        setError("Password must contain at least one uppercase letter.");
+        return;
+      }
+
+      if (!/[a-z]/.test(password)) {
+        setError("Password must contain at least one lowercase letter.");
+        return;
+      }
+
+      if (!/[0-9]/.test(password)) {
+        setError("Password must contain at least one number.");
+        return;
+      }
+    }
+
     setError("");
     setLoading(true);
+
     try {
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -55,7 +108,8 @@ export default function AuthScreen() {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (e: any) {
-      setError(getErrorMessage(e.code));
+      console.log("Firebase error code:", e?.code);
+      setError(getErrorMessage(e?.code ?? "", e?.message ?? ""));
     } finally {
       setLoading(false);
     }

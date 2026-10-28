@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { updateHome } from "../lib/homes";
 import { Expense, Home, Need, NeedStatus } from "../types";
@@ -39,6 +38,7 @@ import {
 } from "../lib/needs";
 import { refitStatuses } from "../lib/refit";
 import { STORES, openStore } from "../lib/storeLinks";
+import AccountScreen from "./AccountScreen";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 1, title: "Essentials" },
@@ -109,6 +109,7 @@ export default function NeedsScreen({
   const [expTitle, setExpTitle] = useState("");
   const [expAmount, setExpAmount] = useState("");
   const [expError, setExpError] = useState("");
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -381,6 +382,9 @@ export default function NeedsScreen({
         <ActivityIndicator size="large" />
       </View>
     );
+  }
+  if (showAccount) {
+    return <AccountScreen onBack={() => setShowAccount(false)} />;
   }
 
   const remaining = getRemaining(home.budget, needs, expenses);
@@ -704,8 +708,8 @@ export default function NeedsScreen({
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={() => signOut(auth)}>
-        <Text style={styles.logout}>Log out</Text>
+      <TouchableOpacity onPress={() => setShowAccount(true)}>
+        <Text style={styles.logout}>Account</Text>
       </TouchableOpacity>
     </ScrollView>
   );
