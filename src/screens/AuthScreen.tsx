@@ -1,6 +1,5 @@
 import { createElement, useState } from "react";
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,9 +10,35 @@ import {
 } from "react-native";
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+
+function isValidEmail(email: string): boolean {
+  const trimmedEmail = email.trim();
+
+  if (!trimmedEmail) {
+    return false;
+  }
+
+  const atIndex = trimmedEmail.indexOf("@");
+
+  if (atIndex <= 0 || atIndex !== trimmedEmail.lastIndexOf("@")) {
+    return false;
+  }
+
+  const localPart = trimmedEmail.slice(0, atIndex);
+  const domain = trimmedEmail.slice(atIndex + 1);
+
+  if (!localPart || !domain || /\s/.test(localPart) || /\s/.test(domain)) {
+    return false;
+  }
+
+  const lastDotIndex = domain.lastIndexOf(".");
+
+  return lastDotIndex > 0 && lastDotIndex < domain.length - 1;
+}
 
 function getErrorMessage(code: string, errorMessage = ""): string {
   switch (code) {
@@ -71,39 +96,22 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    if (isSignUp) {
-      if (password.length < 7) {
-        setError("Password must be at least 7 characters long.");
-        return;
-      }
-
-      if (!/[A-Z]/.test(password)) {
-        setError("Password must contain at least one uppercase letter.");
-        return;
-      }
-
-      if (!/[a-z]/.test(password)) {
-        setError("Password must contain at least one lowercase letter.");
-        return;
-      }
-
-      if (!/[0-9]/.test(password)) {
-        setError("Password must contain at least one number.");
-        return;
-      }
-    }
-
     setError("");
     setLoading(true);
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const cred = await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password,
+        );
+
+        try {
+          await sendEmailVerification(cred.user);
+        } catch (error) {
+          console.error("Verification email could not be sent:", error);
+        }
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
@@ -132,6 +140,8 @@ export default function AuthScreen() {
       placeholder: "Email",
       autoCapitalize: "none",
       keyboardType: "email-address",
+      autoCorrect: false,
+      maxLength: 100,
       value: email,
       onChangeText: setEmail,
     }),
@@ -140,6 +150,7 @@ export default function AuthScreen() {
       placeholder: "Password",
       secureTextEntry: true,
       value: password,
+      maxLength: 100,
       onChangeText: setPassword,
     }),
     error ? createElement(Text, { style: styles.error }, error) : null,

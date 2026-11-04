@@ -38,6 +38,7 @@ import {
 } from "../lib/needs";
 import { refitStatuses } from "../lib/refit";
 import { STORES, openStore } from "../lib/storeLinks";
+import { parseAmount, sanitizeAmountInput } from "../lib/validate";
 import AccountScreen from "./AccountScreen";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
@@ -80,9 +81,11 @@ function SmallChip({
 export default function NeedsScreen({
   home,
   onHomeUpdated,
+  onBack,
 }: {
   home: Home;
   onHomeUpdated: (home: Home) => void;
+  onBack: () => void;
 }) {
   const [needs, setNeeds] = useState<Need[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -109,6 +112,7 @@ export default function NeedsScreen({
   const [expTitle, setExpTitle] = useState("");
   const [expAmount, setExpAmount] = useState("");
   const [expError, setExpError] = useState("");
+
   const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
@@ -148,7 +152,7 @@ export default function NeedsScreen({
       }
     };
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -190,13 +194,13 @@ export default function NeedsScreen({
   };
 
   const confirmPurchase = async (need: Need) => {
-    const amount = parseFloat(buyPrice.replace(",", "."));
-    if (!amount || amount < 0) {
-      setBuyError("Enter a valid price.");
+    const parsed = parseAmount(buyPrice);
+    if (parsed.value === null) {
+      setBuyError(parsed.error);
       return;
     }
     try {
-      const expense = await markPurchased(home, need, amount);
+      const expense = await markPurchased(home, need, parsed.value);
       patchLocal(need.id, { status: "purchased" });
       setExpenses((prev) => [...prev, expense]);
       setBuyingId(null);
@@ -241,13 +245,13 @@ export default function NeedsScreen({
   };
 
   const handleAdd = async () => {
-    const cost = parseFloat(newCost.replace(",", "."));
     if (!newName.trim()) {
       setFormError("Enter a name.");
       return;
     }
-    if (!cost || cost < 0) {
-      setFormError("Enter a valid cost.");
+    const parsed = parseAmount(newCost);
+    if (parsed.value === null) {
+      setFormError(parsed.error);
       return;
     }
     setFormError("");
@@ -256,7 +260,7 @@ export default function NeedsScreen({
         name: newName.trim(),
         room: newRoom.trim() || "General",
         priority: newPriority,
-        estimatedCost: cost,
+        estimatedCost: parsed.value,
       });
       setNeeds((prev) => [...prev, created]);
       setNewName("");
@@ -270,20 +274,20 @@ export default function NeedsScreen({
   };
 
   const handleAddExpense = async () => {
-    const amount = parseFloat(expAmount.replace(",", "."));
     if (!expTitle.trim()) {
       setExpError("Enter what you bought.");
       return;
     }
-    if (!amount || amount < 0) {
-      setExpError("Enter a valid amount.");
+    const parsed = parseAmount(expAmount);
+    if (parsed.value === null) {
+      setExpError(parsed.error);
       return;
     }
     setExpError("");
     try {
       const created = await addExpense(home, {
         title: expTitle.trim(),
-        amount,
+        amount: parsed.value,
       });
       setExpenses((prev) => [...prev, created]);
       setExpTitle("");
@@ -295,12 +299,12 @@ export default function NeedsScreen({
   };
 
   const handleUpdateBudget = async () => {
-    const amount = Number(newBudget.replace(",", "."));
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setBudgetError("Enter a valid budget.");
+    const parsed = parseAmount(newBudget);
+    if (parsed.value === null) {
+      setBudgetError(parsed.error);
       return;
     }
+    const amount = parsed.value;
 
     if (!auth.currentUser) {
       setBudgetError("You are not signed in.");
@@ -325,6 +329,7 @@ export default function NeedsScreen({
         hasGarden: home.hasGarden,
         ownedItems: home.ownedItems,
       });
+
       const changes = refitStatuses(needs, amount, getSpentTotal(expenses));
       if (changes.length > 0) {
         await updateNeedsBatch(changes);
@@ -345,6 +350,7 @@ export default function NeedsScreen({
       setRefitNote(
         parts.length > 0 ? `Budget updated: ${parts.join(", ")}.` : "",
       );
+
       onHomeUpdated(updatedHome);
       setNewBudget(String(amount));
       setEditingBudget(false);
@@ -383,6 +389,7 @@ export default function NeedsScreen({
       </View>
     );
   }
+
   if (showAccount) {
     return <AccountScreen onBack={() => setShowAccount(false)} />;
   }
@@ -393,6 +400,9 @@ export default function NeedsScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <Text style={styles.addButtonText}>← Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Your setup plan</Text>
 
       <View style={styles.summary}>
@@ -451,7 +461,8 @@ export default function NeedsScreen({
             placeholder="New budget (₺)"
             keyboardType="decimal-pad"
             value={newBudget}
-            onChangeText={setNewBudget}
+            onChangeText={(t) => setNewBudget(sanitizeAmountInput(t))}
+            maxLength={12}
           />
 
           {budgetError ? <Text style={styles.over}>{budgetError}</Text> : null}
@@ -469,7 +480,9 @@ export default function NeedsScreen({
           </TouchableOpacity>
         </View>
       ) : null}
+
       {refitNote ? <Text style={styles.deferredNote}>{refitNote}</Text> : null}
+
       {needs.some((n) => n.status === "deferred") ? (
         <Text style={styles.deferredNote}>
           {needs.filter((n) => n.status === "deferred").length} items are on
@@ -575,7 +588,10 @@ export default function NeedsScreen({
                         style={styles.input}
                         keyboardType="decimal-pad"
                         value={buyPrice}
-                        onChangeText={setBuyPrice}
+                        onChangeText={(t) =>
+                          setBuyPrice(sanitizeAmountInput(t))
+                        }
+                        maxLength={12}
                       />
                       {buyError ? (
                         <Text style={styles.over}>{buyError}</Text>
@@ -612,19 +628,22 @@ export default function NeedsScreen({
             placeholder="Name"
             value={newName}
             onChangeText={setNewName}
+            maxLength={60}
           />
           <TextInput
             style={styles.input}
             placeholder="Room"
             value={newRoom}
             onChangeText={setNewRoom}
+            maxLength={60}
           />
           <TextInput
             style={styles.input}
             placeholder="Estimated cost (₺)"
             keyboardType="decimal-pad"
             value={newCost}
-            onChangeText={setNewCost}
+            onChangeText={(t) => setNewCost(sanitizeAmountInput(t))}
+            maxLength={12}
           />
           <View style={styles.chipRow}>
             {GROUPS.map((g) => (
@@ -683,13 +702,15 @@ export default function NeedsScreen({
             placeholder="What did you buy?"
             value={expTitle}
             onChangeText={setExpTitle}
+            maxLength={60}
           />
           <TextInput
             style={styles.input}
             placeholder="Amount (₺)"
             keyboardType="decimal-pad"
             value={expAmount}
-            onChangeText={setExpAmount}
+            onChangeText={(t) => setExpAmount(sanitizeAmountInput(t))}
+            maxLength={12}
           />
           {expError ? <Text style={styles.over}>{expError}</Text> : null}
           <TouchableOpacity style={styles.button} onPress={handleAddExpense}>
@@ -826,6 +847,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     gap: 12,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    marginBottom: 12,
   },
   expenseRemove: { color: "#c62828", fontSize: 16, paddingHorizontal: 4 },
   logout: {

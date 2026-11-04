@@ -8,12 +8,13 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { auth } from "../lib/firebase";
 import { saveHome } from "../lib/homes";
 import { Furnishing, Home, HomeType, StyleType } from "../types";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Platform } from "react-native";
+import { parseAmount, parsePeopleCount } from "../lib/validate";
 
 const HOME_TYPES: HomeType[] = ["studio", "apartment", "house"];
 const FURNISHINGS: Furnishing[] = ["unfurnished", "furnished"];
@@ -34,6 +35,7 @@ const OWNED_OPTIONS = [
 
 interface Props {
   onSaved: (home: Home) => void;
+
 }
 
 function formatDate(d: Date): string {
@@ -87,21 +89,22 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   };
 
   const handleSave = async () => {
-    const people = parseInt(peopleCount, 10);
-    const budgetNumber = parseFloat(budget.replace(",", "."));
+    const peopleResult = parsePeopleCount(peopleCount);
 
-    if (!people || people < 1) {
-      setError("Enter a valid number of people.");
+    if (peopleResult.value === null) {
+      setError(peopleResult.error);
       return;
     }
-    if (!budgetNumber || budgetNumber <= 0) {
-      setError("Enter a valid budget.");
+
+    const budgetResult = parseAmount(budget);
+    if (budgetResult.value === null) {
+      setError(budgetResult.error);
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(moveInDate)) {
-      setError("Please select a move-in date.");
-      return;
-    }
+
+    const people = peopleResult.value;
+    const budgetNumber = budgetResult.value;
+
     const [layoutBedrooms, layoutLiving] = layout.split("+").map(Number);
     const bedrooms = type === "studio" ? 1 : layoutBedrooms;
     const livingRooms = type === "studio" ? 0 : layoutLiving;
@@ -128,6 +131,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         ownedItems,
         hasGarden,
       });
+
       onSaved(home);
     } catch {
       setError("Could not save. Check your connection and try again.");
@@ -195,10 +199,9 @@ export default function HomeSetupScreen({ onSaved }: Props) {
           mode="date"
           display={Platform.OS === "ios" ? "inline" : "default"}
           minimumDate={new Date()}
-          onChange={(event, selected) => {
+          onValueChange={(event, selected) => {
             if (Platform.OS !== "ios") setShowPicker(false);
-            if (event.type === "set" && selected)
-              setMoveInDate(formatDate(selected));
+            if (selected) setMoveInDate(formatDate(selected));
           }}
         />
       )}

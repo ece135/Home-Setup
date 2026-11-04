@@ -2,6 +2,7 @@ import {
   EmailAuthProvider,
   deleteUser,
   reauthenticateWithCredential,
+  sendEmailVerification,
   sendPasswordResetEmail,
 } from "firebase/auth";
 import {
@@ -14,6 +15,20 @@ import {
 import { auth, db } from "./firebase";
 
 const OWNED_COLLECTIONS = ["needs", "expenses", "tasks", "rooms", "homes"];
+
+export async function sendVerificationEmail(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("You are not signed in.");
+  await sendEmailVerification(user);
+}
+
+export async function checkVerified(): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) return false;
+  await user.reload();
+  await user.getIdToken(true);
+  return user.emailVerified;
+}
 
 export async function sendResetEmail(): Promise<void> {
   const email = auth.currentUser?.email;
