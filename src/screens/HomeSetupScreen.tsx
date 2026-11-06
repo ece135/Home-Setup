@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
   View,
+  ImageBackground,
   Text,
   TextInput,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Switch,
   ActivityIndicator,
   Platform,
@@ -15,6 +16,7 @@ import { saveHome } from "../lib/homes";
 import { Furnishing, Home, HomeType, StyleType } from "../types";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { parseAmount, parsePeopleCount } from "../lib/validate";
+import { colors } from "../theme";
 
 const HOME_TYPES: HomeType[] = ["studio", "apartment", "house"];
 const FURNISHINGS: Furnishing[] = ["unfurnished", "furnished"];
@@ -35,7 +37,6 @@ const OWNED_OPTIONS = [
 
 interface Props {
   onSaved: (home: Home) => void;
-
 }
 
 function formatDate(d: Date): string {
@@ -139,20 +140,33 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       setLoading(false);
     }
   };
-
+  const homeTypeImages: Record<HomeType, number> = {
+    studio: require("../../assets/images/type-studio.jpg"),
+    apartment: require("../../assets/images/type-apartment.jpg"),
+    house: require("../../assets/images/type-house.jpg"),
+  };
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Define your home</Text>
 
       <Text style={styles.label}>Home type</Text>
-      <View style={styles.row}>
+      <View style={styles.HomeTypeRow}>
         {HOME_TYPES.map((t) => (
-          <Chip
+          <TouchableOpacity
             key={t}
-            label={t}
-            selected={type === t}
             onPress={() => setType(t)}
-          />
+            style={[styles.typeCard, type === t && styles.typeCardSelected]}
+          >
+            <ImageBackground
+              source={homeTypeImages[t]}
+              style={styles.typeImage}
+              imageStyle={styles.typeImageCorners}
+              resizeMode="cover"
+            >
+              <View style={styles.typeShade} />
+              <Text style={styles.typeText}>{t}</Text>
+            </ImageBackground>
+          </TouchableOpacity>
         ))}
       </View>
 
@@ -312,6 +326,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 24,
     marginBottom: 40,
+  },
+  HomeTypeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 6,
+    marginLeft: -10,
+  },
+
+  typeCard: {
+    flex: 1,
+    width: 100,
+    height: 100,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+
+  typeCardSelected: {
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+
+  typeImage: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+
+  typeImageCorners: {
+    borderRadius: 14,
+  },
+
+  typeShade: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+
+  typeText: {
+    color: "white",
+    fontWeight: "700",
+    padding: 8,
   },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
