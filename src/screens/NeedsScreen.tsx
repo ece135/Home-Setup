@@ -40,6 +40,7 @@ import { refitStatuses } from "../lib/refit";
 import { STORES, openStore } from "../lib/storeLinks";
 import { parseAmount, sanitizeAmountInput } from "../lib/validate";
 import AccountScreen from "./AccountScreen";
+import SmallChip from "../components/Chip";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 1, title: "Essentials" },
@@ -56,27 +57,6 @@ const STATUSES: { value: NeedStatus; label: string }[] = [
 ];
 
 const money = (n: number) => `₺${Math.round(n).toLocaleString("tr-TR")}`;
-
-function SmallChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.chip, selected && styles.chipSelected]}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
 
 export default function NeedsScreen({
   home,

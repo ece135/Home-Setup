@@ -1,12 +1,12 @@
-import { createElement, useState } from "react";
+import { useState } from "react";
 import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import {
   createUserWithEmailAndPassword,
@@ -14,32 +14,9 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-
-function isValidEmail(email: string): boolean {
-  const trimmedEmail = email.trim();
-
-  if (!trimmedEmail) {
-    return false;
-  }
-
-  const atIndex = trimmedEmail.indexOf("@");
-
-  if (atIndex <= 0 || atIndex !== trimmedEmail.lastIndexOf("@")) {
-    return false;
-  }
-
-  const localPart = trimmedEmail.slice(0, atIndex);
-  const domain = trimmedEmail.slice(atIndex + 1);
-
-  if (!localPart || !domain || /\s/.test(localPart) || /\s/.test(domain)) {
-    return false;
-  }
-
-  const lastDotIndex = domain.lastIndexOf(".");
-
-  return lastDotIndex > 0 && lastDotIndex < domain.length - 1;
-}
-
+import Button from "../components/Button";
+import TextField from "../components/TextField";
+import { colors, fontSize, radius, spacing } from "../theme";
 function getErrorMessage(code: string, errorMessage = ""): string {
   switch (code) {
     case "auth/invalid-email":
@@ -96,6 +73,38 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!email.trim() || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (isSignUp) {
+      if (password.length < 7) {
+        setError("Password must be at least 7 characters long.");
+        return;
+      }
+
+      if (!/[A-Z]/.test(password)) {
+        setError("Password must contain at least one uppercase letter.");
+        return;
+      }
+
+      if (!/[a-z]/.test(password)) {
+        setError("Password must contain at least one lowercase letter.");
+        return;
+      }
+
+      if (!/\d/.test(password)) {
+        setError("Password must contain at least one number.");
+        return;
+      }
+    }
+
     setError("");
     setLoading(true);
 
@@ -106,12 +115,9 @@ export default function AuthScreen() {
           email.trim(),
           password,
         );
-
         try {
           await sendEmailVerification(cred.user);
-        } catch (error) {
-          console.error("Verification email could not be sent:", error);
-        }
+        } catch {}
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
@@ -123,87 +129,165 @@ export default function AuthScreen() {
     }
   };
 
-  return createElement(
-    KeyboardAvoidingView,
-    {
-      style: styles.container,
-      behavior: Platform.OS === "ios" ? "padding" : undefined,
-    },
-    createElement(Text, { style: styles.title }, "Home Setup"),
-    createElement(
-      Text,
-      { style: styles.subtitle },
-      isSignUp ? "Create your account" : "Welcome back",
-    ),
-    createElement(TextInput, {
-      style: styles.input,
-      placeholder: "Email",
-      autoCapitalize: "none",
-      keyboardType: "email-address",
-      autoCorrect: false,
-      maxLength: 100,
-      value: email,
-      onChangeText: setEmail,
-    }),
-    createElement(TextInput, {
-      style: styles.input,
-      placeholder: "Password",
-      secureTextEntry: true,
-      value: password,
-      maxLength: 100,
-      onChangeText: setPassword,
-    }),
-    error ? createElement(Text, { style: styles.error }, error) : null,
-    createElement(
-      TouchableOpacity,
-      { style: styles.button, onPress: handleSubmit, disabled: loading },
-      loading
-        ? createElement(ActivityIndicator, { color: "#fff" })
-        : createElement(
-            Text,
-            { style: styles.buttonText },
-            isSignUp ? "Sign up" : "Log in",
-          ),
-    ),
-    createElement(
-      TouchableOpacity,
-      { onPress: () => setIsSignUp(!isSignUp) },
-      createElement(
-        Text,
-        { style: styles.switchText },
-        isSignUp
-          ? "Already have an account? Log in"
-          : "No account yet? Sign up",
-      ),
-    ),
+  return (
+    <ImageBackground
+      source={require("../../assets/images/auth-hero.jpg")}
+      style={styles.formArea}
+      imageStyle={{ resizeMode: "cover" }}
+    >
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.hero}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Home Setup</Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            Set up your new home within your budget
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            A prioritised plan, tracked purchases, and a budget that adapts.
+          </Text>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>
+            {isSignUp ? "Create your account" : "Welcome back"}
+          </Text>
+
+          <TextField
+            placeholder="Email"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            maxLength={100}
+          />
+          <TextField
+            placeholder="Password"
+            secureTextEntry
+            autoCapitalize="none"
+            value={password}
+            onChangeText={setPassword}
+            maxLength={100}
+          />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Button
+            title={isSignUp ? "Sign up" : "Log in"}
+            onPress={handleSubmit}
+            loading={loading}
+          />
+
+          <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+            <Text style={styles.switchText}>
+              {isSignUp
+                ? "Already have an account? Log in"
+                : "No account yet? Sign up"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: { flex: 1 },
+  hero: {
+    marginTop: -25,
+    backgroundColor: colors.primaryDark,
+    paddingTop: 70,
+    paddingBottom: 50,
+    paddingHorizontal: spacing.xl,
+    position: "relative",
+    overflow: "hidden",
+    zIndex: 1,
+    borderBottomLeftRadius: 140,
+    borderBottomRightRadius: 140,
+  },
+  badge: {
+    alignSelf: "center",
+    backgroundColor: colors.accent,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    marginBottom: spacing.lg,
+    textAlign: "center",
+  },
+  badgeText: {
+    color: colors.onPrimary,
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+  },
+  heroTitle: {
+    color: colors.onPrimary,
+    fontSize: fontSize.hero,
+    fontWeight: "700",
+    lineHeight: 40,
+    textAlign: "center",
+  },
+  heroSubtitle: {
+    color: colors.accentSoft,
+    fontSize: fontSize.lg,
+    marginTop: spacing.md,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  heroImage: {
+    position: "absolute",
+    marginTop: 0,
+    left: 0,
+    right: 0,
+    resizeMode: "cover",
+    borderRadius: 90,
+    overflow: "hidden",
+   
+  },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    aspectRatio: 1,
+    resizeMode: "cover",
+  },
+  formArea: {
     flex: 1,
     justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
+    marginTop: -32,
+    paddingTop: spacing.xl + 32,
+    paddingBottom: spacing.xl,
+    overflow: "hidden",
+    backgroundColor: "transparent",
+    position: "relative",
   },
-  title: { fontSize: 32, fontWeight: "700", marginBottom: 4 },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-    fontSize: 16,
+
+  formCard: {
+    backgroundColor: "rgba(210, 230, 222, 0.8)",
+    marginHorizontal: spacing.lg,
+    marginTop: 42,
+    padding: spacing.xl,
+    borderRadius: 40,
+    shadowColor: "#277681",
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  error: { color: "#c62828", marginBottom: 12 },
-  button: {
-    backgroundColor: "#1f6f6b",
-    padding: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 4,
+  formTitle: {
+    fontSize: fontSize.xl + 4,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  switchText: { textAlign: "center", marginTop: 20, color: "#1f6f6b" },
+  error: { color: colors.danger, marginTop: spacing.md },
+  switchText: {
+    textAlign: "center",
+    marginTop: spacing.xl,
+    color: colors.primary,
+  },
 });
