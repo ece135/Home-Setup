@@ -1,22 +1,24 @@
 import { useState } from "react";
 import {
   View,
-  ImageBackground,
   Text,
   TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Switch,
-  ActivityIndicator,
   Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { auth } from "../lib/firebase";
 import { saveHome } from "../lib/homes";
 import { Furnishing, Home, HomeType, StyleType } from "../types";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { parseAmount, parsePeopleCount } from "../lib/validate";
-import { colors } from "../theme";
+import { parseAmount, sanitizeAmountInput } from "../lib/validate";
+import Button from "../components/Button";
+import Chip from "../components/Chip";
+import OptionCard from "../components/OptionCard";
+import TextField from "../components/TextField";
+import { colors, fontSize, radius, spacing } from "../theme";
 
 const HOME_TYPES: HomeType[] = ["studio", "apartment", "house"];
 const FURNISHINGS: Furnishing[] = ["unfurnished", "furnished"];
@@ -35,6 +37,19 @@ const OWNED_OPTIONS = [
   "bedding",
 ];
 
+const HOME_TYPE_IMAGES: Record<HomeType, number> = {
+  studio: require("../../assets/images/type-studio.jpg"),
+  apartment: require("../../assets/images/type-apartment.jpg"),
+  house: require("../../assets/images/type-house.jpg"),
+};
+
+const STYLE_SUBTITLES: Record<StyleType, string> = {
+  minimal: "Clean and simple",
+  cozy: "Warm and soft",
+  modern: "Sleek and current",
+  classic: "Timeless look",
+};
+
 interface Props {
   onSaved: (home: Home) => void;
 }
@@ -46,25 +61,8 @@ function formatDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.chip, selected && styles.chipSelected]}
-    >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export default function HomeSetupScreen({ onSaved }: Props) {
@@ -90,25 +88,22 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   };
 
   const handleSave = async () => {
-    const peopleResult = parsePeopleCount(peopleCount);
+    const peopleCountNumber = Number(peopleCount);
 
-    if (peopleResult.value === null) {
-      setError(peopleResult.error);
+    if (!peopleCount || peopleCountNumber < 1 || peopleCountNumber > 10) {
+      setError("Enter a number between 1 and 10.");
       return;
-    }
-
+}
     const budgetResult = parseAmount(budget);
     if (budgetResult.value === null) {
       setError(budgetResult.error);
       return;
     }
 
-    const people = peopleResult.value;
-    const budgetNumber = budgetResult.value;
-
     const [layoutBedrooms, layoutLiving] = layout.split("+").map(Number);
     const bedrooms = type === "studio" ? 1 : layoutBedrooms;
     const livingRooms = type === "studio" ? 0 : layoutLiving;
+
     const user = auth.currentUser;
     if (!user) {
       setError("You are not signed in.");
@@ -121,10 +116,10 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       const home = await saveHome(user.uid, {
         type,
         furnishing,
-        peopleCount: people,
+        peopleCount: peopleCountNumber,
         bedrooms,
         livingRooms,
-        budget: budgetNumber,
+        budget: budgetResult.value,
         moveInDate,
         style,
         worksFromHome,
@@ -140,33 +135,28 @@ export default function HomeSetupScreen({ onSaved }: Props) {
       setLoading(false);
     }
   };
-  const homeTypeImages: Record<HomeType, number> = {
-    studio: require("../../assets/images/type-studio.jpg"),
-    apartment: require("../../assets/images/type-apartment.jpg"),
-    house: require("../../assets/images/type-house.jpg"),
-  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Define your home</Text>
+      <Text style={styles.subtitle}>
+        Tell us about your new place so we can build your plan.
+      </Text>
 
       <Text style={styles.label}>Home type</Text>
-      <View style={styles.HomeTypeRow}>
+      <View style={styles.typeRow}>
         {HOME_TYPES.map((t) => (
-          <TouchableOpacity
-            key={t}
-            onPress={() => setType(t)}
-            style={[styles.typeCard, type === t && styles.typeCardSelected]}
-          >
-            <ImageBackground
-              source={homeTypeImages[t]}
-              style={styles.typeImage}
-              imageStyle={styles.typeImageCorners}
-              resizeMode="cover"
-            >
-              <View style={styles.typeShade} />
-              <Text style={styles.typeText}>{t}</Text>
-            </ImageBackground>
-          </TouchableOpacity>
+          <View key={t} style={styles.typeItem}>
+            <OptionCard
+              title={capitalize(t)}
+              image={HOME_TYPE_IMAGES[t]}
+              selected={type === t}
+              onPress={() => setType(t)}
+            />
+          </View>
         ))}
       </View>
 
@@ -175,35 +165,66 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         {FURNISHINGS.map((f) => (
           <Chip
             key={f}
-            label={f}
+            label={capitalize(f)}
             selected={furnishing === f}
             onPress={() => setFurnishing(f)}
           />
         ))}
       </View>
-
       <Text style={styles.label}>Number of people</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="number-pad"
-        value={peopleCount}
-        onChangeText={setPeopleCount}
-      />
+
+      <View style={styles.peopleRow}>
+        <TouchableOpacity
+          style={styles.counterButton}
+          onPress={() =>
+            setPeopleCount((current) =>
+              String(Math.max(1, Number(current || 1) - 1))
+            )
+          }
+        >
+          <Text style={styles.counterButtonText}>−</Text>
+        </TouchableOpacity>
+
+        
+
+        <View style={styles.peopleInputShadow}>
+        <TextInput
+          style={styles.peopleInput}
+          value={peopleCount}
+          keyboardType="number-pad"
+          selectTextOnFocus
+          textAlign="center"
+          underlineColorAndroid="transparent"
+        />
+        </View>
+
+        <TouchableOpacity
+          style={styles.counterButton}
+          onPress={() =>
+            setPeopleCount((current) =>
+              String(Math.min(10, Number(current || 0) + 1))
+            )
+          }
+        >
+          <Text style={styles.counterButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.label}>Budget (₺)</Text>
-      <TextInput
-        style={styles.input}
+      <TextField
+        placeholder="e.g. 80000"
         keyboardType="decimal-pad"
         value={budget}
-        onChangeText={setBudget}
+        onChangeText={(t) => setBudget(sanitizeAmountInput(t))}
+        maxLength={12}
       />
 
       <Text style={styles.label}>Move-in date</Text>
       <TouchableOpacity
-        style={styles.input}
+        style={styles.dateField}
         onPress={() => setShowPicker(!showPicker)}
       >
-        <Text style={{ fontSize: 16, color: moveInDate ? "#000" : "#999" }}>
+        <Text style={moveInDate ? styles.dateText : styles.datePlaceholder}>
           {moveInDate || "Select a date"}
         </Text>
       </TouchableOpacity>
@@ -220,42 +241,6 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         />
       )}
 
-      <Text style={styles.label}>Style</Text>
-      <View style={styles.row}>
-        {STYLES.map((s) => (
-          <Chip
-            key={s}
-            label={s}
-            selected={style === s}
-            onPress={() => setStyle(s)}
-          />
-        ))}
-      </View>
-
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I work from home</Text>
-        <Switch value={worksFromHome} onValueChange={setWorksFromHome} />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I have a pet</Text>
-        <Switch value={hasPet} onValueChange={setHasPet} />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I have a garden or balcony</Text>
-        <Switch value={hasGarden} onValueChange={setHasGarden} />
-      </View>
-
-      <Text style={styles.label}>Items you already own</Text>
-      <View style={styles.row}>
-        {OWNED_OPTIONS.map((item) => (
-          <Chip
-            key={item}
-            label={item}
-            selected={ownedItems.includes(item)}
-            onPress={() => toggleOwned(item)}
-          />
-        ))}
-      </View>
       {type !== "studio" && (
         <>
           <Text style={styles.label}>Layout (bedrooms + living rooms)</Text>
@@ -272,99 +257,178 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         </>
       )}
 
+      <Text style={styles.label}>Style</Text>
+      <View style={styles.styleGrid}>
+        {STYLES.map((s) => (
+          <View key={s} style={styles.styleItem}>
+            <OptionCard
+              title={capitalize(s)}
+              subtitle={STYLE_SUBTITLES[s]}
+              selected={style === s}
+              onPress={() => setStyle(s)}
+            />
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Lifestyle</Text>
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>I work from home</Text>
+        <Switch
+          value={worksFromHome}
+          onValueChange={setWorksFromHome}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>I have a pet</Text>
+        <Switch
+          value={hasPet}
+          onValueChange={setHasPet}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+      <View style={styles.switchRow}>
+        <Text style={styles.switchLabel}>I have a garden or balcony</Text>
+        <Switch
+          value={hasGarden}
+          onValueChange={setHasGarden}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+
+      <Text style={styles.label}>Items you already own</Text>
+      <View style={styles.row}>
+        {OWNED_OPTIONS.map((item) => (
+          <Chip
+            key={item}
+            label={item}
+            selected={ownedItems.includes(item)}
+            onPress={() => toggleOwned(item)}
+          />
+        ))}
+      </View>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TouchableOpacity
-        style={styles.button}
+      <Button
+        title="Save my home"
         onPress={handleSave}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Save my home</Text>
-        )}
-      </TouchableOpacity>
+        loading={loading}
+        style={styles.saveButton}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, paddingTop: 60, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 20 },
-  label: { fontSize: 15, fontWeight: "600", marginTop: 16, marginBottom: 8 },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
+  container: {
+    padding: spacing.xl,
+    paddingTop: 60,
+    backgroundColor: colors.background,
   },
-  chipSelected: { backgroundColor: "#1f6f6b", borderColor: "#1f6f6b" },
-  chipText: { color: "#333" },
-  chipTextSelected: { color: "#fff" },
-  input: {
+  title: { fontSize: fontSize.title, fontWeight: "700", color: colors.text },
+  subtitle: {
+    fontSize: fontSize.md,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  label: {
+    fontSize: fontSize.md,
+    fontWeight: "600",
+    color: colors.text,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+  },
+  section: { marginTop: spacing.lg },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  peopleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
+ 
+  peopleInputShadow: {
+  backgroundColor: colors.card,
+  borderRadius: radius.md,
+  shadowColor: "#000",
+  shadowOffset: { width: 2, height: 2 },
+  shadowOpacity: 0.12,
+  shadowRadius: 6,
+  elevation: 5,
+  },
+
+  peopleInput: {
+    width: 64,
+    height: 40,
+    padding: 0,
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "700",
+    backgroundColor: "transparent",
+    borderRadius: radius.md,
+  },
+  peopleCounter: {
+  flexDirection: "row",
+  alignItems: "center",
+  alignSelf: "flex-start",
+  backgroundColor: "#F1F7F6",
+  borderWidth: 1,
+  borderColor: "#D5E7E4",
+  borderRadius: 16,
+  padding: 3,
+},
+
+  counterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1F6F6B",
+  },
+
+  counterButtonText: {
+    color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "600",
+  },
+
+  typeRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  typeItem: { flex: 1 },
+  styleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  styleItem: { width: "47%" },
+  dateField: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     padding: 14,
-    fontSize: 16,
+    backgroundColor: colors.background,
   },
+  dateText: { fontSize: fontSize.lg, color: colors.text },
+  datePlaceholder: { fontSize: fontSize.lg, color: colors.textSubtle },
   switchRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 16,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  switchLabel: { fontSize: 16 },
-  error: { color: "#c62828", marginTop: 16 },
-  button: {
-    backgroundColor: "#1f6f6b",
-    padding: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 40,
-  },
-  HomeTypeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 6,
-    marginLeft: -10,
-  },
-
-  typeCard: {
-    flex: 1,
-    width: 100,
-    height: 100,
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-
-  typeCardSelected: {
-    borderWidth: 3,
-    borderColor: colors.primary,
-  },
-
-  typeImage: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-
-  typeImageCorners: {
-    borderRadius: 14,
-  },
-
-  typeShade: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-
-  typeText: {
-    color: "white",
-    fontWeight: "700",
-    padding: 8,
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  switchLabel: { fontSize: fontSize.lg, color: colors.text },
+  error: { color: colors.danger, marginTop: spacing.lg },
+  saveButton: { marginTop: spacing.xl, marginBottom: 40 },
 });

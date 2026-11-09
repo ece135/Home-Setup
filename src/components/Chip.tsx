@@ -24,11 +24,11 @@ export default function Chip({
 
 const styles = StyleSheet.create({
   chip: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: "#CBC1AE",
   },
   chipSelected: {
     backgroundColor: colors.primary,
