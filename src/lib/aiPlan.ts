@@ -40,6 +40,7 @@ async function fetchExtras(home: Home, base: NeedDraft[]): Promise<NeedDraft[]> 
           worksFromHome: home.worksFromHome,
           hasPet: home.hasPet,
           hasGarden: home.hasGarden,
+          hasBalcony: home.hasBalcony ?? false,
           ownedItems: home.ownedItems,
         },
         existingItems: base.map((need) => need.name),

@@ -18,6 +18,7 @@ export interface Home {
   hasGarden: boolean;
   ownedItems: string[];
   createdAt: number;
+  hasBalcony?: boolean;
 }
 
 export interface Room {

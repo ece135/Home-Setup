@@ -15,6 +15,9 @@ export const colors = {
   danger: "#c62828",
   warning: "#b26a00",
   onPrimary: "#ffffff",
+  PaleGoldenRod: "#eee8aa",
+  cornSilk: "#fff8dc",
+  AliceBlue: "#F0F8FF"
 };
 
 export const spacing = {

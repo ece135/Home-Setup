@@ -31,6 +31,7 @@ export function generatePlan(home: Home): NeedDraft[] {
     if (item.onlyIf?.worksFromHome && !home.worksFromHome) continue;
     if (item.onlyIf?.hasPet && !home.hasPet) continue;
     if (item.onlyIf?.hasGarden && !home.hasGarden) continue;
+    if (item.onlyIf?.hasBalcony && !home.hasBalcony) continue;
     if (item.onlyIf?.minPeople && home.peopleCount < item.onlyIf.minPeople) continue;
 
     let priority: number = item.priority;

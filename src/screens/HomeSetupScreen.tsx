@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Switch,
   Platform,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { auth } from "../lib/firebase";
@@ -80,6 +81,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [layout, setLayout] = useState("1+1");
+  const [hasBalcony, setHasBalcony] = useState(false);
 
   const toggleOwned = (item: string) => {
     setOwnedItems((prev) =>
@@ -93,7 +95,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
     if (!peopleCount || peopleCountNumber < 1 || peopleCountNumber > 10) {
       setError("Enter a number between 1 and 10.");
       return;
-}
+    }
     const budgetResult = parseAmount(budget);
     if (budgetResult.value === null) {
       setError(budgetResult.error);
@@ -126,6 +128,7 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         hasPet,
         ownedItems,
         hasGarden,
+        hasBalcony,
       });
 
       onSaved(home);
@@ -138,15 +141,19 @@ export default function HomeSetupScreen({ onSaved }: Props) {
 
   return (
     <ScrollView
+      style={styles.screen}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Define your home</Text>
-      <Text style={styles.subtitle}>
-        Tell us about your new place so we can build your plan.
-      </Text>
+      <View style={styles.header}>
+        <View style={styles.headerBar} />
+        <Text style={styles.title}>Define your home</Text>
+        <Text style={styles.subtitle}>
+          Tell us about your new place so we can build your plan.
+        </Text>
+      </View>
 
-      <Text style={styles.label}>Home type</Text>
+      <Text style={styles.sectionTitle}>Home type</Text>
       <View style={styles.typeRow}>
         {HOME_TYPES.map((t) => (
           <View key={t} style={styles.typeItem}>
@@ -160,104 +167,156 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         ))}
       </View>
 
-      <Text style={styles.label}>Furnishing</Text>
-      <View style={styles.row}>
-        {FURNISHINGS.map((f) => (
-          <Chip
-            key={f}
-            label={capitalize(f)}
-            selected={furnishing === f}
-            onPress={() => setFurnishing(f)}
-          />
-        ))}
-      </View>
-      <Text style={styles.label}>Number of people</Text>
-
-      <View style={styles.peopleRow}>
-        <TouchableOpacity
-          style={styles.counterButton}
-          onPress={() =>
-            setPeopleCount((current) =>
-              String(Math.max(1, Number(current || 1) - 1))
-            )
-          }
-        >
-          <Text style={styles.counterButtonText}>−</Text>
-        </TouchableOpacity>
-
-        
-
-        <View style={styles.peopleInputShadow}>
-        <TextInput
-          style={styles.peopleInput}
-          value={peopleCount}
-          keyboardType="number-pad"
-          selectTextOnFocus
-          textAlign="center"
-          underlineColorAndroid="transparent"
-        />
+      <Text style={styles.sectionTitle}>The basics</Text>
+      <View style={styles.card}>
+        <Text style={styles.fieldLabel}>Furnishing</Text>
+        <View style={styles.row}>
+          {FURNISHINGS.map((f) => (
+            <Chip
+              key={f}
+              label={capitalize(f)}
+              selected={furnishing === f}
+              onPress={() => setFurnishing(f)}
+            />
+          ))}
         </View>
 
+        <Text style={[styles.fieldLabel, styles.fieldGap]}>
+          Number of people
+        </Text>
+        <View style={styles.peopleRow}>
+          <TouchableOpacity
+            style={styles.counterButton}
+            activeOpacity={0.8}
+            onPress={() =>
+              setPeopleCount((current) =>
+                String(Math.max(1, Number(current || 1) - 1)),
+              )
+            }
+          >
+            <Text style={styles.counterButtonText}>−</Text>
+          </TouchableOpacity>
+
+          <View style={styles.peopleInputShadow}>
+            <TextInput
+              style={styles.peopleInput}
+              value={peopleCount}
+              keyboardType="number-pad"
+              selectTextOnFocus
+              textAlign="center"
+              underlineColorAndroid="transparent"
+              onChangeText={(text) => {
+                const digits = text.replace(/\D/g, "");
+
+                if (digits === "") {
+                  setPeopleCount("");
+                  return;
+                }
+
+                setPeopleCount(String(Math.min(10, Number(digits))));
+              }}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.counterButton}
+            activeOpacity={0.8}
+            onPress={() =>
+              setPeopleCount((current) =>
+                String(Math.min(10, Number(current || 0) + 1)),
+              )
+            }
+          >
+            <Text style={styles.counterButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.fieldLabel, styles.fieldGap]}>Budget (₺)</Text>
+        <TextField
+          placeholder="Enter your budget"
+          keyboardType="decimal-pad"
+          value={budget}
+          onChangeText={(t) => setBudget(sanitizeAmountInput(t))}
+          maxLength={12}
+          style={styles.fieldInput}
+        />
+
+        <Text style={[styles.fieldLabel, styles.fieldGap]}>Move-in date</Text>
         <TouchableOpacity
-          style={styles.counterButton}
-          onPress={() =>
-            setPeopleCount((current) =>
-              String(Math.min(10, Number(current || 0) + 1))
-            )
-          }
+          style={styles.dateField}
+          onPress={() => setShowPicker(true)}
         >
-          <Text style={styles.counterButtonText}>+</Text>
+          <Text style={moveInDate ? styles.dateText : styles.datePlaceholder}>
+            {moveInDate || "Select date"}
+          </Text>
         </TouchableOpacity>
+
+        {showPicker && (
+          Platform.OS === "ios" ? (
+            <Modal transparent animationType="fade" visible={showPicker}>
+              <TouchableOpacity
+                style={styles.modalBackdrop}
+                activeOpacity={1}
+                onPress={() => setShowPicker(false)}
+              >
+                <View
+                  style={styles.modalContent}
+                  onStartShouldSetResponder={() => true}
+                >
+                  <DateTimePicker
+                    value={
+                      moveInDate ? new Date(`${moveInDate}T00:00:00`) : new Date()
+                    }
+                    mode="date"
+                    display="inline"
+                    accentColor={colors.primary}
+                    onChange={(event, date) => {
+                      if (date) {
+                        setMoveInDate(formatDate(date));
+                        setShowPicker(false);
+                      }
+                    }}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          ) : (
+            <DateTimePicker
+              value={
+                moveInDate ? new Date(`${moveInDate}T00:00:00`) : new Date()
+              }
+              mode="date"
+              display="default"
+              onChange={(event, date) => {
+                setShowPicker(false);
+                if (event.type === "set" && date) {
+                  setMoveInDate(formatDate(date));
+                }
+              }}
+            />
+          )
+        )}
+
+        {type !== "studio" && (
+          <>
+            <Text style={[styles.fieldLabel, styles.fieldGap]}>
+              Layout (bedrooms + living rooms)
+            </Text>
+            <View style={styles.row}>
+              {LAYOUTS.map((l) => (
+                <Chip
+                  key={l}
+                  label={l}
+                  selected={layout === l}
+                  onPress={() => setLayout(l)}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </View>
 
-      <Text style={styles.label}>Budget (₺)</Text>
-      <TextField
-        placeholder="e.g. 80000"
-        keyboardType="decimal-pad"
-        value={budget}
-        onChangeText={(t) => setBudget(sanitizeAmountInput(t))}
-        maxLength={12}
-      />
-
-      <Text style={styles.label}>Move-in date</Text>
-      <TouchableOpacity
-        style={styles.dateField}
-        onPress={() => setShowPicker(!showPicker)}
-      >
-        <Text style={moveInDate ? styles.dateText : styles.datePlaceholder}>
-          {moveInDate || "Select a date"}
-        </Text>
-      </TouchableOpacity>
-      {showPicker && (
-        <DateTimePicker
-          value={moveInDate ? new Date(moveInDate) : new Date()}
-          mode="date"
-          display={Platform.OS === "ios" ? "inline" : "default"}
-          minimumDate={new Date()}
-          onValueChange={(event, selected) => {
-            if (Platform.OS !== "ios") setShowPicker(false);
-            if (selected) setMoveInDate(formatDate(selected));
-          }}
-        />
-      )}
-
-      {type !== "studio" && (
-        <>
-          <Text style={styles.label}>Layout (bedrooms + living rooms)</Text>
-          <View style={styles.row}>
-            {LAYOUTS.map((l) => (
-              <Chip
-                key={l}
-                label={l}
-                selected={layout === l}
-                onPress={() => setLayout(l)}
-              />
-            ))}
-          </View>
-        </>
-      )}
-
-      <Text style={styles.label}>Style</Text>
+      <Text style={styles.sectionTitle}>Style</Text>
       <View style={styles.styleGrid}>
         {STYLES.map((s) => (
           <View key={s} style={styles.styleItem}>
@@ -271,42 +330,54 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         ))}
       </View>
 
-      <Text style={styles.label}>Lifestyle</Text>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I work from home</Text>
-        <Switch
-          value={worksFromHome}
-          onValueChange={setWorksFromHome}
-          trackColor={{ true: colors.primary }}
-        />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I have a pet</Text>
-        <Switch
-          value={hasPet}
-          onValueChange={setHasPet}
-          trackColor={{ true: colors.primary }}
-        />
-      </View>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>I have a garden or balcony</Text>
-        <Switch
-          value={hasGarden}
-          onValueChange={setHasGarden}
-          trackColor={{ true: colors.primary }}
-        />
+      <Text style={styles.sectionTitle}>Lifestyle</Text>
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>I work from home</Text>
+          <Switch
+            value={worksFromHome}
+            onValueChange={setWorksFromHome}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>I have a pet</Text>
+          <Switch
+            value={hasPet}
+            onValueChange={setHasPet}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>I have a balcony</Text>
+          <Switch
+            value={hasBalcony}
+            onValueChange={setHasBalcony}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <View style={[styles.switchRow, styles.switchRowLast]}>
+          <Text style={styles.switchLabel}>I have a garden</Text>
+          <Switch
+            value={hasGarden}
+            onValueChange={setHasGarden}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
       </View>
 
-      <Text style={styles.label}>Items you already own</Text>
-      <View style={styles.row}>
-        {OWNED_OPTIONS.map((item) => (
-          <Chip
-            key={item}
-            label={item}
-            selected={ownedItems.includes(item)}
-            onPress={() => toggleOwned(item)}
-          />
-        ))}
+      <Text style={styles.sectionTitle}>Items you already own</Text>
+      <View style={styles.card}>
+        <View style={styles.row}>
+          {OWNED_OPTIONS.map((item) => (
+            <Chip
+              key={item}
+              label={item}
+              selected={ownedItems.includes(item)}
+              onPress={() => toggleOwned(item)}
+            />
+          ))}
+        </View>
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -321,49 +392,82 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   );
 }
 
+const cardShadow = {
+  shadowColor: "#12302e",
+  shadowOpacity: 0.1,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+};
+
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.accentSoft },
   container: {
     padding: spacing.xl,
     paddingTop: 60,
-    backgroundColor: colors.background,
+    paddingBottom: 48,
   },
-  title: { fontSize: fontSize.title, fontWeight: "700", color: colors.text },
+  header: { marginBottom: spacing.sm },
+  headerBar: {
+    width: 48,
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: fontSize.title,
+    fontWeight: "700",
+    color: colors.primaryDark,
+  },
   subtitle: {
     fontSize: fontSize.md,
     color: colors.textMuted,
     marginTop: spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: "700",
+    color: colors.primaryDark,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
+  },
+  card: {
+    backgroundColor: colors.cornSilk,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    padding: spacing.xxl,
+    ...cardShadow,
+  },
+  fieldLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    color: colors.textMuted,
     marginBottom: spacing.sm,
   },
-  label: {
-    fontSize: fontSize.md,
-    fontWeight: "600",
-    color: colors.text,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
+  fieldGap: { marginTop: spacing.xl },
+  fieldInput: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    marginTop: 0,
   },
-  section: { marginTop: spacing.lg },
   row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   peopleRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
+    alignItems: "center",
     gap: spacing.md,
-    marginTop: spacing.xl,
   },
- 
   peopleInputShadow: {
-  backgroundColor: colors.card,
-  borderRadius: radius.md,
-  shadowColor: "#000",
-  shadowOffset: { width: 2, height: 2 },
-  shadowOpacity: 0.12,
-  shadowRadius: 6,
-  elevation: 5,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...cardShadow,
   },
-
   peopleInput: {
     width: 64,
-    height: 40,
+    height: 44,
     padding: 0,
     color: colors.text,
     fontSize: 22,
@@ -371,32 +475,25 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderRadius: radius.md,
   },
-  peopleCounter: {
-  flexDirection: "row",
-  alignItems: "center",
-  alignSelf: "flex-start",
-  backgroundColor: "#F1F7F6",
-  borderWidth: 1,
-  borderColor: "#D5E7E4",
-  borderRadius: 16,
-  padding: 3,
-},
-
   counterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1F6F6B",
+    backgroundColor: colors.primary,
+    shadowColor: colors.primaryDark,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-
   counterButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 26,
     fontWeight: "600",
+    lineHeight: 30,
   },
-
   typeRow: {
     flexDirection: "row",
     gap: spacing.md,
@@ -416,7 +513,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.md,
     padding: 14,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
   },
   dateText: { fontSize: fontSize.lg, color: colors.text },
   datePlaceholder: { fontSize: fontSize.lg, color: colors.textSubtle },
@@ -426,9 +523,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.accent,
   },
+  switchRowLast: { borderBottomWidth: 0 },
   switchLabel: { fontSize: fontSize.lg, color: colors.text },
-  error: { color: colors.danger, marginTop: spacing.lg },
-  saveButton: { marginTop: spacing.xl, marginBottom: 40 },
+  error: { color: colors.danger, marginTop: spacing.xl },
+  saveButton: {
+    marginTop: spacing.xxl,
+    paddingVertical: 16,
+    borderRadius: radius.lg,
+    shadowColor: colors.primaryDark,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor:colors.AliceBlue,
+    borderRadius: radius.xl,
+    padding: spacing.sm,
+    width: "100%",
+    ...cardShadow,
+  },
 });

@@ -307,6 +307,7 @@ export default function NeedsScreen({
         worksFromHome: home.worksFromHome,
         hasPet: home.hasPet,
         hasGarden: home.hasGarden,
+        hasBalcony: home.hasBalcony ?? false,
         ownedItems: home.ownedItems,
       });
 
