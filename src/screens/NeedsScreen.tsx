@@ -3,7 +3,6 @@ import {
   Alert,
   View,
   Text,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -40,7 +39,11 @@ import { refitStatuses } from "../lib/refit";
 import { STORES, openStore } from "../lib/storeLinks";
 import { parseAmount, sanitizeAmountInput } from "../lib/validate";
 import AccountScreen from "./AccountScreen";
+import Button from "../components/Button";
+import Card from "../components/Card";
 import SmallChip from "../components/Chip";
+import TextField from "../components/TextField";
+import { colors, fontSize, radius, spacing } from "../theme";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 1, title: "Essentials" },
@@ -48,6 +51,13 @@ const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 3, title: "Nice-to-haves" },
   { priority: 4, title: "Optional extras" },
 ];
+
+const PRIORITY_COLORS: Record<1 | 2 | 3 | 4, string> = {
+  1: colors.accent,
+  2: "#e9a45c",
+  3: "#2D5A47",
+  4: "#8AB8A4",
+};
 
 const STATUSES: { value: NeedStatus; label: string }[] = [
   { value: "planned", label: "Planned" },
@@ -94,6 +104,7 @@ export default function NeedsScreen({
   const [expError, setExpError] = useState("");
 
   const [showAccount, setShowAccount] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -119,8 +130,8 @@ export default function NeedsScreen({
 
         setNeeds(list);
         setExpenses(expenseList);
-      } catch (error) {
-        console.error("Plan loading failed:", error);
+      } catch (err) {
+        console.error("Plan loading failed:", err);
 
         if (!cancelled) {
           setError("Could not load your plan. Check your connection.");
@@ -366,7 +377,7 @@ export default function NeedsScreen({
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -375,110 +386,138 @@ export default function NeedsScreen({
     return <AccountScreen onBack={() => setShowAccount(false)} />;
   }
 
+  const toggleGroup = (priority: number) => {
+    setCollapsed((prev) => ({ ...prev, [priority]: !prev[priority] }));
+  };
+
   const remaining = getRemaining(home.budget, needs, expenses);
   const progress = getProgress(needs);
   const unplanned = getUnplannedTotal(expenses);
+  const deferredCount = needs.filter((n) => n.status === "deferred").length;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.addButtonText}>← Back</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backButton}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.backText}>← Back</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Your setup plan</Text>
 
-      <View style={styles.summary}>
-        <View>
-          <Text style={styles.summaryLabel}>Budget</Text>
-          <Text style={styles.summaryValue}>{money(home.budget)}</Text>
-
-          <TouchableOpacity
-            onPress={() => {
-              setNewBudget(String(home.budget));
-              setBudgetError("");
-              setEditingBudget((prev) => !prev);
-            }}
-          >
-            <Text style={styles.addButtonText}>
-              {editingBudget ? "Cancel" : "Edit budget"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View>
-          <Text style={styles.summaryLabel}>Planned</Text>
-          <Text style={styles.summaryValue}>
-            {money(getPlannedTotal(needs))}
-          </Text>
-        </View>
-        <View>
-          <Text style={styles.summaryLabel}>Spent</Text>
-          <Text style={styles.summaryValue}>
-            {money(getSpentTotal(expenses))}
-          </Text>
-        </View>
-        <View>
-          <Text style={styles.summaryLabel}>Remaining</Text>
-          <Text style={[styles.summaryValue, remaining < 0 && styles.over]}>
-            {money(remaining)}
-          </Text>
-        </View>
+      <View style={styles.header}>
+        <View style={styles.headerBar} />
+        <Text style={styles.title}>Your setup plan</Text>
       </View>
 
-      <View style={styles.progressWrap}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.summaryLabel}>Setup progress</Text>
-          <Text style={styles.progressValue}>{progress}%</Text>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Budget</Text>
+            <Text style={styles.summaryValue} numberOfLines={1}>
+              {money(home.budget)}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Planned</Text>
+            <Text style={styles.summaryValue} numberOfLines={1}>
+              {money(getPlannedTotal(needs))}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Spent</Text>
+            <Text style={styles.summaryValue} numberOfLines={1}>
+              {money(getSpentTotal(expenses))}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Remaining</Text>
+            <Text
+              style={[styles.summaryValue, remaining < 0 && styles.over]}
+              numberOfLines={1}
+            >
+              {money(remaining)}
+            </Text>
+          </View>
         </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+
+        <TouchableOpacity
+          onPress={() => {
+            setNewBudget(String(home.budget));
+            setBudgetError("");
+            setEditingBudget((prev) => !prev);
+          }}
+        >
+          <Text style={styles.linkText}>
+            {editingBudget ? "Cancel" : "Edit budget"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.progressWrap}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.summaryLabel}>Setup progress</Text>
+            <Text style={styles.progressValue}>{progress}%</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
         </View>
       </View>
 
       {editingBudget ? (
-        <View style={styles.form}>
-          <Text style={styles.groupTitle}>Update your budget</Text>
-
-          <TextInput
-            style={styles.input}
+        <Card style={styles.formCard}>
+          <Text style={styles.formTitle}>Update your budget</Text>
+          <TextField
             placeholder="New budget (₺)"
             keyboardType="decimal-pad"
             value={newBudget}
             onChangeText={(t) => setNewBudget(sanitizeAmountInput(t))}
             maxLength={12}
+            style={styles.fieldInput}
           />
-
           {budgetError ? <Text style={styles.over}>{budgetError}</Text> : null}
-
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            title="Save budget"
             onPress={handleUpdateBudget}
-            disabled={budgetLoading}
-          >
-            {budgetLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Save budget</Text>
-            )}
-          </TouchableOpacity>
+            loading={budgetLoading}
+            style={styles.primaryShadow}
+          />
+        </Card>
+      ) : null}
+
+      {refitNote ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{refitNote}</Text>
         </View>
       ) : null}
 
-      {refitNote ? <Text style={styles.deferredNote}>{refitNote}</Text> : null}
-
-      {needs.some((n) => n.status === "deferred") ? (
-        <Text style={styles.deferredNote}>
-          {needs.filter((n) => n.status === "deferred").length} items are on
-          Later. Move one back to Planned when your budget allows.
-        </Text>
+      {deferredCount > 0 ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>
+            {deferredCount} items are on Later. Move one back to Planned when
+            your budget allows.
+          </Text>
+        </View>
       ) : null}
 
       {remaining < 0 ? (
-        <Text style={styles.over}>Planned items are above your budget.</Text>
+        <View style={[styles.banner, styles.bannerDanger]}>
+          <Text style={styles.dangerText}>
+            Planned items are above your budget.
+          </Text>
+        </View>
       ) : null}
 
       {unplanned > 0 ? (
-        <Text style={styles.unplannedNote}>
-          Unplanned spending so far: {money(unplanned)}
-        </Text>
+        <View style={[styles.banner, styles.bannerWarning]}>
+          <Text style={styles.warningText}>
+            Unplanned spending so far: {money(unplanned)}
+          </Text>
+        </View>
       ) : null}
 
       {error ? <Text style={styles.over}>{error}</Text> : null}
@@ -486,145 +525,184 @@ export default function NeedsScreen({
       {GROUPS.map((group) => {
         const items = needs.filter((n) => n.priority === group.priority);
         if (items.length === 0) return null;
+        const isCollapsed = collapsed[group.priority] === true;
+        const plannedTotal = items
+          .filter((n) => n.status === "planned")
+          .reduce((sum, n) => sum + n.estimatedCost, 0);
+
         return (
           <View key={group.priority}>
-            <Text style={styles.groupTitle}>{group.title}</Text>
-            {items.map((n) => {
-              const templateItem = BASE_TEMPLATE.find(
-                (t) => t.name === n.name && t.options,
-              );
-              const actual = linkedExpenses(n.id)[0];
-              const inactive =
-                n.status === STATUSES[2].value ||
-                n.status === STATUSES[3].value;
-              return (
-                <View
-                  key={n.id}
-                  style={[styles.card, inactive && styles.inactive]}
-                >
-                  <View style={styles.cardTop}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.name}>{n.name}</Text>
-                      <Text style={styles.room}>{n.room}</Text>
-                      {n.source === "ai" ? (
-                        <Text style={styles.aiNote}>
-                          AI suggestion{n.reason ? `: ${n.reason}` : ""}
+            <TouchableOpacity
+              style={styles.groupHeader}
+              activeOpacity={0.7}
+              onPress={() => toggleGroup(group.priority)}
+            >
+              <View
+                style={[
+                  styles.groupDot,
+                  { backgroundColor: PRIORITY_COLORS[group.priority] },
+                ]}
+              />
+              <Text style={styles.groupTitle}>{group.title}</Text>
+              <Text style={styles.groupCount}>{items.length}</Text>
+              <View style={{ flex: 1 }} />
+              {isCollapsed ? (
+                <Text style={styles.groupTotal}>{money(plannedTotal)}</Text>
+              ) : null}
+              <Text style={styles.chevron}>{isCollapsed ? "▸" : "▾"}</Text>
+            </TouchableOpacity>
+
+            {isCollapsed
+              ? null
+              : items.map((n) => {
+                  const templateItem = BASE_TEMPLATE.find(
+                    (t) => t.name === n.name && t.options,
+                  );
+                  const actual = linkedExpenses(n.id)[0];
+                  const inactive =
+                    n.status === STATUSES[2].value ||
+                    n.status === STATUSES[3].value;
+
+                  return (
+                    <Card
+                      key={n.id}
+                      style={[styles.needCard, inactive && styles.inactive]}
+                    >
+                      <View style={styles.cardTop}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.name}>{n.name}</Text>
+                          <Text style={styles.room}>{n.room}</Text>
+                          {n.source === "ai" ? (
+                            <View style={styles.aiBadge}>
+                              <Text style={styles.aiBadgeText}>
+                                AI suggestion{n.reason ? `: ${n.reason}` : ""}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={styles.cost}>
+                          {n.status === "purchased" && actual
+                            ? money(actual.amount)
+                            : money(n.estimatedCost)}
                         </Text>
-                      ) : null}
-                    </View>
-                    <Text style={styles.cost}>
-                      {n.status === "purchased" && actual
-                        ? money(actual.amount)
-                        : money(n.estimatedCost)}
-                    </Text>
-                  </View>
-
-                  {templateItem?.options && n.status === STATUSES[0].value ? (
-                    <View style={styles.chipRow}>
-                      {templateItem.options.map((o) => (
-                        <SmallChip
-                          key={o.label}
-                          label={`${o.label} · ${money(o.cost)}`}
-                          selected={n.selectedOption === o.label}
-                          onPress={() => handleOption(n, o.label, o.cost)}
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-
-                  {n.status === "planned" || n.status === "deferred" ? (
-                    <View style={styles.chipRow}>
-                      <Text style={styles.room}>Find online:</Text>
-                      {STORES.map((s) => (
-                        <SmallChip
-                          key={s.id}
-                          label={s.label}
-                          selected={false}
-                          onPress={() =>
-                            openStore(s, n.searchTerm?.trim() || n.name)
-                          }
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-
-                  <View style={styles.chipRow}>
-                    {STATUSES.map((s) => (
-                      <SmallChip
-                        key={s.value}
-                        label={s.label}
-                        selected={
-                          n.status === s.value ||
-                          (buyingId === n.id && s.value === "purchased")
-                        }
-                        onPress={() => handleStatus(n, s.value)}
-                      />
-                    ))}
-                  </View>
-
-                  {buyingId === n.id ? (
-                    <View style={styles.buyBox}>
-                      <Text style={styles.room}>How much did you pay?</Text>
-                      <TextInput
-                        style={styles.input}
-                        keyboardType="decimal-pad"
-                        value={buyPrice}
-                        onChangeText={(t) =>
-                          setBuyPrice(sanitizeAmountInput(t))
-                        }
-                        maxLength={12}
-                      />
-                      {buyError ? (
-                        <Text style={styles.over}>{buyError}</Text>
-                      ) : null}
-                      <View style={styles.buyActions}>
-                        <TouchableOpacity
-                          style={styles.smallButton}
-                          onPress={() => confirmPurchase(n)}
-                        >
-                          <Text style={styles.buttonText}>Save</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setBuyingId(null)}>
-                          <Text style={styles.remove}>Cancel</Text>
-                        </TouchableOpacity>
                       </View>
-                    </View>
-                  ) : null}
 
-                  <TouchableOpacity onPress={() => handleDelete(n)}>
-                    <Text style={styles.remove}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
+                      {templateItem?.options &&
+                      n.status === STATUSES[0].value ? (
+                        <View style={styles.chipRow}>
+                          {templateItem.options.map((o) => (
+                            <SmallChip
+                              key={o.label}
+                              label={`${o.label} · ${money(o.cost)}`}
+                              selected={n.selectedOption === o.label}
+                              onPress={() => handleOption(n, o.label, o.cost)}
+                            />
+                          ))}
+                        </View>
+                      ) : null}
+
+                      <View style={styles.divider} />
+
+                      <View style={styles.chipRow}>
+                        {STATUSES.map((s) => (
+                          <SmallChip
+                            key={s.value}
+                            label={s.label}
+                            selected={
+                              n.status === s.value ||
+                              (buyingId === n.id && s.value === "purchased")
+                            }
+                            onPress={() => handleStatus(n, s.value)}
+                          />
+                        ))}
+                      </View>
+
+                      {n.status === "planned" || n.status === "deferred" ? (
+                        <View style={styles.storeRow}>
+                          <Text style={styles.storeLabel}>Find online</Text>
+                          {STORES.map((s) => (
+                            <SmallChip
+                              key={s.id}
+                              label={s.label}
+                              selected={false}
+                              onPress={() =>
+                                openStore(s, n.searchTerm?.trim() || n.name)
+                              }
+                            />
+                          ))}
+                        </View>
+                      ) : null}
+
+                      {buyingId === n.id ? (
+                        <View style={styles.buyBox}>
+                          <Text style={styles.fieldLabel}>
+                            How much did you pay?
+                          </Text>
+                          <TextField
+                            keyboardType="decimal-pad"
+                            value={buyPrice}
+                            onChangeText={(t) =>
+                              setBuyPrice(sanitizeAmountInput(t))
+                            }
+                            maxLength={12}
+                            style={styles.fieldInput}
+                          />
+                          {buyError ? (
+                            <Text style={styles.over}>{buyError}</Text>
+                          ) : null}
+                          <View style={styles.buyActions}>
+                            <Button
+                              title="Save"
+                              onPress={() => confirmPurchase(n)}
+                              style={styles.smallButton}
+                            />
+                            <Button
+                              title="Cancel"
+                              variant="link"
+                              onPress={() => setBuyingId(null)}
+                              style={styles.inlineLink}
+                            />
+                          </View>
+                        </View>
+                      ) : null}
+
+                      <TouchableOpacity
+                        onPress={() => handleDelete(n)}
+                        style={styles.removeWrap}
+                      >
+                        <Text style={styles.remove}>Remove</Text>
+                      </TouchableOpacity>
+                    </Card>
+                  );
+                })}
           </View>
         );
       })}
 
       {showForm ? (
-        <View style={styles.form}>
-          <Text style={styles.groupTitle}>Add an item</Text>
-          <TextInput
-            style={styles.input}
+        <Card style={styles.formCard}>
+          <Text style={styles.formTitle}>Add an item</Text>
+          <TextField
             placeholder="Name"
             value={newName}
             onChangeText={setNewName}
             maxLength={60}
+            style={styles.fieldInput}
           />
-          <TextInput
-            style={styles.input}
+          <TextField
             placeholder="Room"
             value={newRoom}
             onChangeText={setNewRoom}
             maxLength={60}
+            style={styles.fieldInput}
           />
-          <TextInput
-            style={styles.input}
+          <TextField
             placeholder="Estimated cost (₺)"
             keyboardType="decimal-pad"
             value={newCost}
             onChangeText={(t) => setNewCost(sanitizeAmountInput(t))}
             maxLength={12}
+            style={styles.fieldInput}
           />
           <View style={styles.chipRow}>
             {GROUPS.map((g) => (
@@ -637,207 +715,457 @@ export default function NeedsScreen({
             ))}
           </View>
           {formError ? <Text style={styles.over}>{formError}</Text> : null}
-          <TouchableOpacity style={styles.button} onPress={handleAdd}>
-            <Text style={styles.buttonText}>Add to plan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowForm(false)}>
-            <Text style={styles.remove}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+          <Button
+            title="Add to plan"
+            onPress={handleAdd}
+            style={styles.primaryShadow}
+          />
+          <Button
+            title="Cancel"
+            variant="link"
+            onPress={() => setShowForm(false)}
+          />
+        </Card>
       ) : (
         <TouchableOpacity
-          style={styles.addButton}
           onPress={() => setShowForm(true)}
+          style={styles.customOutlineBtn}
+          activeOpacity={0.8}
         >
-          <Text style={styles.addButtonText}>+ Add an item</Text>
+          <Text style={styles.customOutlineBtnText}>+ Add an item</Text>
         </TouchableOpacity>
       )}
 
-      <Text style={styles.groupTitle}>Expenses</Text>
-      {expenses.length === 0 ? (
-        <Text style={styles.room}>No expenses yet.</Text>
-      ) : (
-        expenses.map((e) => (
-          <View key={e.id} style={styles.expenseRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{e.title}</Text>
-              <Text style={styles.room}>
-                {e.date}
-                {e.needId ? "" : " · Unplanned"}
-              </Text>
+      <View style={styles.sectionHeader}>
+        <View style={[styles.groupDot, { backgroundColor: colors.primary }]} />
+        <Text style={styles.groupTitle}>Expenses</Text>
+      </View>
+
+      <Card style={styles.expenseCard}>
+        {expenses.length === 0 ? (
+          <Text style={styles.emptyText}>No expenses yet.</Text>
+        ) : (
+          expenses.map((e, index) => (
+            <View
+              key={e.id}
+              style={[
+                styles.expenseRow,
+                index === expenses.length - 1 && styles.expenseRowLast,
+              ]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{e.title}</Text>
+                <View style={styles.expenseMeta}>
+                  <Text style={styles.room}>{e.date}</Text>
+                  {e.needId ? null : (
+                    <View style={styles.unplannedBadge}>
+                      <Text style={styles.unplannedBadgeText}>Unplanned</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <Text style={styles.cost}>{money(e.amount)}</Text>
+              {!e.needId ? (
+                <TouchableOpacity onPress={() => handleDeleteExpense(e)}>
+                  <Text style={styles.expenseRemove}>✕</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-            <Text style={styles.cost}>{money(e.amount)}</Text>
-            {!e.needId ? (
-              <TouchableOpacity onPress={() => handleDeleteExpense(e)}>
-                <Text style={styles.expenseRemove}>✕</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ))
-      )}
+          ))
+        )}
+      </Card>
 
       {showExpenseForm ? (
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
+        <Card style={styles.formCard}>
+          <Text style={styles.formTitle}>Add an unplanned expense</Text>
+          <TextField
             placeholder="What did you buy?"
             value={expTitle}
             onChangeText={setExpTitle}
             maxLength={60}
+            style={styles.fieldInput}
           />
-          <TextInput
-            style={styles.input}
+          <TextField
             placeholder="Amount (₺)"
             keyboardType="decimal-pad"
             value={expAmount}
             onChangeText={(t) => setExpAmount(sanitizeAmountInput(t))}
             maxLength={12}
+            style={styles.fieldInput}
           />
           {expError ? <Text style={styles.over}>{expError}</Text> : null}
-          <TouchableOpacity style={styles.button} onPress={handleAddExpense}>
-            <Text style={styles.buttonText}>Add expense</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowExpenseForm(false)}>
-            <Text style={styles.remove}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+          <Button
+            title="Add expense"
+            onPress={handleAddExpense}
+            style={styles.primaryShadow}
+          />
+          <Button
+            title="Cancel"
+            variant="link"
+            onPress={() => setShowExpenseForm(false)}
+          />
+        </Card>
       ) : (
         <TouchableOpacity
-          style={styles.addButton}
           onPress={() => setShowExpenseForm(true)}
+          style={styles.customOutlineBtn}
+          activeOpacity={0.8}
         >
-          <Text style={styles.addButtonText}>+ Add an unplanned expense</Text>
+          <Text style={styles.customOutlineBtnText}>
+            + Add an unplanned expense
+          </Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity onPress={() => setShowAccount(true)}>
-        <Text style={styles.logout}>Account</Text>
+      <TouchableOpacity
+        onPress={() => setShowAccount(true)}
+        style={styles.accountButton}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.accountButtonText}>Account</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+const cardShadow = {
+  shadowColor: "#12302e",
+  shadowOpacity: 0.1,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+};
+
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 24, paddingTop: 60, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 16 },
-  summary: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#eef6f5",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+  screen: { flex: 1, backgroundColor: "#AED4C3" },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#AED4C3",
   },
-  summaryLabel: { color: "#666", fontSize: 12 },
-  summaryValue: { fontSize: 15, fontWeight: "700", marginTop: 2 },
-  progressWrap: { marginTop: 8 },
+  container: {
+    padding: spacing.xl,
+    paddingTop: 60,
+    paddingBottom: 48,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FAF8F3",
+    borderWidth: 1,
+    borderColor: "#8FBAA7",
+    borderRadius: radius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: spacing.lg,
+    ...cardShadow,
+  },
+  backText: {
+    color: "#1E2D27",
+    fontSize: fontSize.md,
+    fontWeight: "600",
+  },
+  header: { marginBottom: spacing.lg },
+  headerBar: {
+    width: 48,
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: fontSize.title,
+    fontWeight: "700",
+    color: "#1E2D27",
+  },
+  summaryCard: {
+    backgroundColor: "#FAF8F3",
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: "#D8E6DF",
+    padding: spacing.lg,
+    ...cardShadow,
+  },
+  summaryRow: { flexDirection: "row", gap: spacing.sm },
+  summaryItem: { flex: 1 },
+  summaryLabel: { color: "#4A6358", fontSize: fontSize.xs },
+  summaryValue: {
+    fontSize: fontSize.md,
+    fontWeight: "700",
+    color: "#1E2D27",
+    marginTop: 2,
+  },
+  linkText: {
+    color: "#264E3D",
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    marginTop: spacing.md,
+  },
+  progressWrap: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: "#E5DFD3",
+  },
   progressHeader: { flexDirection: "row", justifyContent: "space-between" },
-  progressValue: { fontSize: 13, fontWeight: "700", color: "#1f6f6b" },
+  progressValue: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    color: "#264E3D",
+  },
   progressTrack: {
-    height: 8,
-    backgroundColor: "#e3eceb",
-    borderRadius: 4,
-    marginTop: 6,
+    height: 10,
+    backgroundColor: "#EFE9DC",
+    borderRadius: radius.pill,
+    marginTop: spacing.sm,
     overflow: "hidden",
   },
-  progressFill: { height: 8, backgroundColor: "#1f6f6b", borderRadius: 4 },
-  unplannedNote: { marginTop: 10, fontSize: 13, color: "#b26a00" },
-  deferredNote: { marginTop: 10, fontSize: 13, color: "#1f6f6b" },
-  over: { color: "#c62828" },
+  progressFill: {
+    height: 10,
+    backgroundColor: "#264E3D",
+    borderRadius: radius.pill,
+  },
+  banner: {
+    backgroundColor: "#FAF8F3",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: "#D8E6DF",
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  bannerText: { fontSize: fontSize.sm, color: "#1E2D27" },
+  bannerDanger: { backgroundColor: "#fdecec", borderColor: "#f3c6c6" },
+  dangerText: {
+    fontSize: fontSize.sm,
+    color: colors.danger,
+    fontWeight: "600",
+  },
+  bannerWarning: { backgroundColor: "#fff4e0", borderColor: "#f2d9a8" },
+  warningText: { fontSize: fontSize.sm, color: colors.warning },
+  over: { color: colors.danger, marginTop: spacing.sm },
+  groupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
+  },
+  groupDot: {
+    width: 12,
+    height: 12,
+    borderRadius: radius.pill,
+    marginRight: spacing.sm,
+  },
   groupTitle: {
-    fontSize: 18,
+    fontSize: fontSize.xl,
     fontWeight: "700",
-    marginTop: 24,
-    marginBottom: 8,
+    color: "#1E2D27",
   },
-  card: {
+  groupCount: {
+    marginLeft: spacing.sm,
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    color: "#264E3D",
+    backgroundColor: "#FAF8F3",
     borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+    borderColor: "#D8E6DF",
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    overflow: "hidden",
   },
-  inactive: { opacity: 0.5 },
-  cardTop: { flexDirection: "row", alignItems: "center" },
-  name: { fontSize: 16, fontWeight: "600" },
-  room: { fontSize: 13, color: "#888", marginTop: 2 },
-  aiNote: { fontSize: 12, color: "#1f6f6b", marginTop: 4 },
-  cost: { fontSize: 15, fontWeight: "600" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
-  chip: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#ccc",
+  groupTotal: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    color: "#264E3D",
+    marginRight: spacing.sm,
   },
-  chipSelected: { backgroundColor: "#1f6f6b", borderColor: "#1f6f6b" },
-  chipText: { fontSize: 13, color: "#333" },
-  chipTextSelected: { color: "#fff" },
+  chevron: {
+    fontSize: fontSize.xl,
+    color: "#1E2D27",
+    fontWeight: "700",
+  },
+  needCard: {
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    marginBottom: spacing.md,
+    backgroundColor: colors.needs,
+    ...cardShadow,
+  },
+  inactive: { opacity: 0.6 },
+  cardTop: { flexDirection: "row", alignItems: "flex-start" },
+  name: {
+    fontSize: fontSize.lg,
+    fontWeight: "700",
+    color: "#1E2D27",
+  },
+  room: { fontSize: fontSize.sm, color: "#5C7368", marginTop: 2 },
+  cost: {
+    fontSize: fontSize.lg,
+    fontWeight: "700",
+    color: "#1E2D27",
+    marginLeft: spacing.md,
+  },
+  aiBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EFE9DC",
+    borderRadius: radius.sm,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginTop: spacing.sm,
+  },
+  aiBadgeText: { fontSize: fontSize.xs, color: "#264E3D", fontWeight: "600" },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5DFD3",
+    marginTop: spacing.md,
+  },
+  storeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  storeLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: "700",
+    color: "#4A6358",
+    marginRight: 2,
+  },
   buyBox: {
-    backgroundColor: "#f6faf9",
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 10,
+    backgroundColor: "#F5F0E6",
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: "#E5DFD3",
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  fieldLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+    color: "#264E3D",
+  },
+  fieldInput: {
+    backgroundColor: "#FAF8F3",
+    borderColor: "#D8E6DF",
   },
   buyActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginTop: 10,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   smallButton: {
-    backgroundColor: "#1f6f6b",
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 8,
+    marginTop: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
   },
-  remove: { color: "#c62828", fontSize: 13, marginTop: 10 },
-  form: { marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 8,
-    fontSize: 15,
-    backgroundColor: "#fff",
+  inlineLink: { marginTop: 0 },
+  removeWrap: {
+    alignSelf: "flex-end",
+    marginTop: spacing.md,
   },
-  button: {
-    backgroundColor: "#1f6f6b",
-    padding: 14,
-    borderRadius: 10,
+  remove: {
+    color: colors.danger,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
+  },
+  formCard: {
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    marginTop: spacing.lg,
+    backgroundColor: "#FAF8F3",
+    ...cardShadow,
+  },
+  formTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: "700",
+    color: "#1E2D27",
+  },
+  primaryShadow: {
+    paddingVertical: 14,
+    borderRadius: radius.lg,
+  },
+  customOutlineBtn: {
+    marginTop: spacing.lg,
+    backgroundColor: "#FAF8F3",
+    borderColor: "#264E3D",
+    borderWidth: 1.5,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
     alignItems: "center",
-    marginTop: 14,
+    justifyContent: "center",
+    ...cardShadow,
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  addButton: {
-    borderWidth: 1,
-    borderColor: "#1f6f6b",
-    padding: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 16,
+  customOutlineBtnText: {
+    color: "#1E2D27",
+    fontSize: fontSize.md,
+    fontWeight: "700",
   },
-  addButtonText: { color: "#1f6f6b", fontSize: 16, fontWeight: "600" },
+  expenseCard: {
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: "#FAF8F3",
+    ...cardShadow,
+  },
+  emptyText: { fontSize: fontSize.md, color: "#5C7368" },
   expenseRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    gap: 12,
+    borderBottomColor: "#E5DFD3",
+    gap: spacing.md,
   },
-  backButton: {
-    alignSelf: "flex-start",
-    marginBottom: 12,
+  expenseRowLast: { borderBottomWidth: 0 },
+  expenseMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: 2,
   },
-  expenseRemove: { color: "#c62828", fontSize: 16, paddingHorizontal: 4 },
-  logout: {
-    textAlign: "center",
-    color: "#1f6f6b",
-    marginTop: 32,
-    marginBottom: 40,
+  unplannedBadge: {
+    backgroundColor: "#fff4e0",
+    borderRadius: radius.sm,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
+  },
+  unplannedBadgeText: {
+    fontSize: fontSize.xs,
+    color: colors.warning,
+    fontWeight: "600",
+  },
+  expenseRemove: {
+    color: colors.danger,
+    fontSize: fontSize.lg,
+    paddingHorizontal: spacing.xs,
+  },
+  accountButton: {
+    marginTop: spacing.xxl,
+    backgroundColor: colors.accent,
+    borderColor: "#FF7F50",
+    borderWidth: 1.5,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    ...cardShadow,
+  },
+  accountButtonText: {
+    color: "#FAF8F3",
+    fontSize: fontSize.md,
+    fontWeight: "700",
   },
 });

@@ -67,7 +67,8 @@ export const BASE_TEMPLATE: TemplateItem[] = [
 
   { name: "Outdoor table and chairs", room: "Outdoor", priority: 4, cost: 5000, onlyIf: { hasGarden: true , hasBalcony: true, } },
   { name: "Plant pots", room: "Outdoor", priority: 4, cost: 800, onlyIf: { hasGarden: true, hasBalcony: true } },
-  { name: "Garden hose and tools", room: "Outdoor", priority: 2, cost: 2000, onlyForTypes: ["house"], onlyIf: { hasGarden: true } },
+  { name: "Garden hose and tools", room: "Outdoor", priority: 2, cost: 2000, onlyIf: { hasGarden: true } },
+  { name: "Swing Bench" , room: "Outdoor", priority: 4, cost: 4200, onlyIf: { hasGarden: true } },
 
   { name: "Food and water bowls", room: "Pet", priority: 1, cost: 300, onlyIf: { hasPet: true } },
   { name: "Pet bed", room: "Pet", priority: 4, cost: 800, onlyIf: { hasPet: true } },

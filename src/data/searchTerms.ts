@@ -43,6 +43,7 @@ export const SEARCH_TERMS: Record<string, string> = {
    "Outdoor table and chairs": "bahçe masası ve sandalye",
    "Plant pots": "saksı",
    "Garden hose and tools": "bahçe musluğu ve aletleri",
+   "Swing Bench": "Bahçe salıncağı",
 
    "Food and water bowls": "mama ve su kabı",
    "Pet bed": "evcil hayvan yatağı",

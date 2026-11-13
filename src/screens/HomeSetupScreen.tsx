@@ -401,7 +401,7 @@ const cardShadow = {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.accentSoft },
+  screen: { flex: 1, backgroundColor: colors.main },
   container: {
     padding: spacing.xl,
     paddingTop: 60,

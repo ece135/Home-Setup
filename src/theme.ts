@@ -17,7 +17,10 @@ export const colors = {
   onPrimary: "#ffffff",
   PaleGoldenRod: "#eee8aa",
   cornSilk: "#fff8dc",
-  AliceBlue: "#F0F8FF"
+  AliceBlue: "#F0F8FF",
+  main: "#AED4C3",
+  needs: "#EFE9DC",
+  
 };
 
 export const spacing = {

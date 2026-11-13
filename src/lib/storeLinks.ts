@@ -28,16 +28,16 @@ export function openStore(store: Store, searchTerm: string) {
   const term = searchTerm.trim();
 
   if (!term) {
-    console.warn("Arama terimi boş!");
+    console.warn("search term is empty!");
     return;
   }
 
   const url = store.searchUrl(encodeURIComponent(term));
 
-  console.log("Arama terimi:", term);
-  console.log("Oluşturulan URL:", url);
+  console.log("Search term:", term);
+  console.log("URL:", url);
 
   Linking.openURL(url).catch((error) => {
-    console.error("Mağaza açılamadı:", error);
+    console.error("Store couldn't open:", error);
   });
 }
