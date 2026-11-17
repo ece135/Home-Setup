@@ -22,6 +22,7 @@ export interface TemplateItem {
     hasBalcony?: boolean;
     minPeople?: number;
   };
+  onlyIfAny?: { hasGarden?: boolean; hasBalcony?: boolean };
 }
 
 export const BASE_TEMPLATE: TemplateItem[] = [
@@ -65,8 +66,8 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Desk", room: "Workspace", priority: 3, cost: 2500, ownedKey: "desk", workBoost: true },
   { name: "Office chair", room: "Workspace", priority: 3, cost: 4500, workBoost: true, onlyIf: { worksFromHome: true } },
 
-  { name: "Outdoor table and chairs", room: "Outdoor", priority: 4, cost: 5000, onlyIf: { hasGarden: true , hasBalcony: true, } },
-  { name: "Plant pots", room: "Outdoor", priority: 4, cost: 800, onlyIf: { hasGarden: true, hasBalcony: true } },
+  { name: "Outdoor table and chairs", room: "Outdoor", priority: 4, cost: 5000, onlyIfAny: { hasGarden: true , hasBalcony: true } },
+  { name: "Plant pots", room: "Outdoor", priority: 4, cost: 800, onlyIfAny: { hasGarden: true, hasBalcony: true } },
   { name: "Garden hose and tools", room: "Outdoor", priority: 2, cost: 2000, onlyIf: { hasGarden: true } },
   { name: "Swing Bench" , room: "Outdoor", priority: 4, cost: 4200, onlyIf: { hasGarden: true } },
 

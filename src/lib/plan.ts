@@ -33,6 +33,12 @@ export function generatePlan(home: Home): NeedDraft[] {
     if (item.onlyIf?.hasGarden && !home.hasGarden) continue;
     if (item.onlyIf?.hasBalcony && !home.hasBalcony) continue;
     if (item.onlyIf?.minPeople && home.peopleCount < item.onlyIf.minPeople) continue;
+    if (item.onlyIfAny) {
+      const matches =
+        (item.onlyIfAny.hasGarden === true && home.hasGarden) ||
+        (item.onlyIfAny.hasBalcony === true && (home.hasBalcony ?? false));
+      if (!matches) continue;
+   }
 
     let priority: number = item.priority;
     if (item.workBoost && home.worksFromHome) priority = Math.min(priority, 2);

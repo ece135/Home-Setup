@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.xl,
     marginTop: spacing.lg,
-    backgroundColor: "#FAF8F3",
+    backgroundColor: colors.needs,
     ...cardShadow,
   },
   formTitle: {
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
   },
   customOutlineBtn: {
     marginTop: spacing.lg,
-    backgroundColor: "#FAF8F3",
+    backgroundColor: colors.primary,
     borderColor: "#264E3D",
     borderWidth: 1.5,
     borderRadius: radius.lg,
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
     ...cardShadow,
   },
   customOutlineBtnText: {
-    color: "#1E2D27",
+    color: "#cbdad4",
     fontSize: fontSize.md,
     fontWeight: "700",
   },

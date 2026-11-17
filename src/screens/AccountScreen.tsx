@@ -65,7 +65,9 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
               ) {
                 setError("Wrong password.");
               } else {
-                setError("Could not delete the account. Check your connection.");
+                setError(
+                  "Could not delete the account. Check your connection.",
+                );
               }
               setDeleting(false);
             }
@@ -76,7 +78,7 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <TouchableOpacity onPress={onBack}>
         <Text style={styles.back}>‹ Back to plan</Text>
       </TouchableOpacity>
@@ -100,7 +102,6 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.danger}>
-        <Text style={styles.dangerTitle}>Delete account</Text>
         {showDelete ? (
           <View>
             <Text style={styles.label}>
@@ -122,7 +123,7 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
               {deleting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Delete my account</Text>
+                <Text style={styles.dangerTitle}>Delete Account</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -137,7 +138,7 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
           </View>
         ) : (
           <TouchableOpacity onPress={() => setShowDelete(true)}>
-            <Text style={styles.deleteLink}>Delete my account…</Text>
+            <Text style={styles.deleteLink}>Delete my account</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -146,6 +147,10 @@ export default function AccountScreen({ onBack }: { onBack: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: { padding: 24, paddingTop: 60, backgroundColor: "#fff" },
   back: { color: "#1f6f6b", fontSize: 16, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: "700", marginBottom: 16 },
@@ -181,7 +186,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#eee",
     paddingTop: 20,
   },
-  dangerTitle: { fontSize: 16, fontWeight: "700", marginBottom: 8 },
+  dangerTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
   deleteLink: { color: "#c62828", fontSize: 15 },
   deleteButton: {
     backgroundColor: "#c62828",
