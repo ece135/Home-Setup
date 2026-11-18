@@ -44,6 +44,7 @@ import Card from "../components/Card";
 import SmallChip from "../components/Chip";
 import TextField from "../components/TextField";
 import { colors, fontSize, radius, spacing } from "../theme";
+import QuantityStepper from "../components/QuantityStepper";
 
 const GROUPS: { priority: 1 | 2 | 3 | 4; title: string }[] = [
   { priority: 1, title: "Essentials" },
@@ -216,6 +217,23 @@ export default function NeedsScreen({
     }
   };
 
+  const handleQuantity = async (need: Need, quantity: number) => {
+    if (need.unitCost === undefined || need.quantity === undefined) return;
+    if (quantity === need.quantity) return;
+    const estimatedCost = Math.round(need.unitCost * quantity);
+    const previous = {
+      quantity: need.quantity,
+      estimatedCost: need.estimatedCost,
+    };
+    patchLocal(need.id, { quantity, estimatedCost });
+    try {
+      await updateNeed(need.id, { quantity, estimatedCost });
+    } catch {
+      patchLocal(need.id, previous);
+      setError("Could not update. Check your connection.");
+    }
+  };
+
   const handleDelete = (need: Need) => {
     Alert.alert("Remove item", `Remove "${need.name}" from your plan?`, [
       { text: "Cancel", style: "cancel" },
@@ -320,6 +338,8 @@ export default function NeedsScreen({
         hasGarden: home.hasGarden,
         hasBalcony: home.hasBalcony ?? false,
         ownedItems: home.ownedItems,
+        singleBeds: home.singleBeds,
+        doubleBeds: home.doubleBeds,
       });
 
       const changes = refitStatuses(needs, amount, getSpentTotal(expenses));
@@ -556,7 +576,8 @@ export default function NeedsScreen({
               ? null
               : items.map((n) => {
                   const templateItem = BASE_TEMPLATE.find(
-                    (t) => t.name === n.name && t.options,
+                    (t) =>
+                      n.name === t.name || n.name.startsWith(`${t.name} x`),
                   );
                   const actual = linkedExpenses(n.id)[0];
                   const inactive =
@@ -586,7 +607,20 @@ export default function NeedsScreen({
                             : money(n.estimatedCost)}
                         </Text>
                       </View>
-
+                      {templateItem?.quantityEditable === true &&
+                      n.quantity !== undefined &&
+                      n.unitCost !== undefined &&
+                      n.status === "planned" ? (
+                        <View style={styles.qtyRow}>
+                          <Text style={styles.qtyLabel}>
+                            Quantity · {money(n.unitCost)} each
+                          </Text>
+                          <QuantityStepper
+                            value={n.quantity}
+                            onChange={(q) => handleQuantity(n, q)}
+                          />
+                        </View>
+                      ) : null}
                       {templateItem?.options &&
                       n.status === STATUSES[0].value ? (
                         <View style={styles.chipRow}>
@@ -1167,5 +1201,14 @@ const styles = StyleSheet.create({
     color: "#FAF8F3",
     fontSize: fontSize.md,
     fontWeight: "700",
+  },
+  qtyRow: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  qtyLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: "700",
+    color: colors.textMuted,
   },
 });

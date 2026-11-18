@@ -6,13 +6,14 @@ export interface TemplateOption {
 export interface TemplateItem {
   name: string;
   room: string;
+  extraRooms?: number;
   priority: 1 | 2 | 3 | 4;
   cost: number;
   ownedKey?: string;
   coveredByFurnished?: boolean;
   onlyForTypes?: HomeType[];
   skipForTypes?: HomeType[];
-  scale?: "person" | "bedroom" | "room" | "bed";
+  scale?: "person" | "bedroom" | "room" | "singleBed" | "doubleBed" | "bed";
   workBoost?: boolean;
   options?: TemplateOption[];
   onlyIf?: {
@@ -23,15 +24,17 @@ export interface TemplateItem {
     minPeople?: number;
   };
   onlyIfAny?: { hasGarden?: boolean; hasBalcony?: boolean };
+  quantityEditable?: boolean;
 }
 
 export const BASE_TEMPLATE: TemplateItem[] = [
-  { name: "Bed and mattress", room: "Bedroom", priority: 1, cost: 15000, ownedKey: "bed", coveredByFurnished: true, scale: "bed", options: [{ label: "single", cost: 22000 }, { label: "double", cost: 40000 }] },
-  { name: "Bedding set", room: "Bedroom", priority: 1, cost: 1500, ownedKey: "bedding", scale: "bed" },
-  { name: "Wardrobe", room: "Bedroom", priority: 2, cost: 10000, ownedKey: "wardrobe", coveredByFurnished: true, scale: "bedroom" },
-  { name: "Curtains", room: "Bedroom", priority: 2, cost: 2000, scale: "room" },
-  { name: "Bedside lamp", room: "Bedroom", priority: 3, cost: 700, scale: "bedroom" },
-  { name: "Rug", room: "Bedroom", priority: 4, cost: 1500, scale: "room" },
+  { name: "Single bed and mattress", room: "Bedroom", priority: 1, cost: 22000, ownedKey: "bed", coveredByFurnished: true, scale: "singleBed", quantityEditable: true,},
+  { name: "Double bed and mattress", room: "Bedroom", priority: 1, cost: 40000, ownedKey: "bed", coveredByFurnished: true, scale: "doubleBed", quantityEditable: true,},
+  { name: "Bedding set", room: "Bedroom", priority: 1, cost: 1500, ownedKey: "bedding", scale: "bed", quantityEditable: true, },
+  { name: "Wardrobe", room: "Bedroom", priority: 2, cost: 10000, ownedKey: "wardrobe", coveredByFurnished: true, scale: "bedroom", quantityEditable: true,},
+  { name: "Curtains", room: "Bedroom", priority: 2, cost: 2000, scale: "room", extraRooms:1, quantityEditable: true, },
+  { name: "Bedside lamp", room: "Bedroom", priority: 3, cost: 700, scale: "bedroom", quantityEditable: true, },
+  { name: "Rug", room: "Bedroom", priority: 4, cost: 1500, scale: "room", extraRooms:2, quantityEditable: true, },
 
   { name: "Refrigerator", room: "Kitchen", priority: 1, cost: 25000, ownedKey: "fridge", coveredByFurnished: true },
   { name: "Oven", room: "Kitchen", priority: 2, cost: 8000, ownedKey: "oven", coveredByFurnished: true },
@@ -49,12 +52,12 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Storage shelves", room: "Living room", priority: 3, cost: 1500, onlyForTypes: ["studio"] },
 
   { name: "Washing machine", room: "Bathroom", priority: 1, cost: 23000, ownedKey: "washing machine", coveredByFurnished: true },
-  { name: "Towels", room: "Bathroom", priority: 1, cost: 300, scale: "person" },
+  { name: "Towels", room: "Bathroom", priority: 1, cost: 300, scale: "person", quantityEditable: true, },
   { name: "Bath mat", room: "Bathroom", priority: 2, cost: 700 },
   { name: "Laundry basket", room: "Bathroom", priority: 3, cost: 400 },
 
   { name: "Cleaning supplies", room: "General", priority: 1, cost: 800 },
-  { name: "Light bulbs", room: "General", priority: 1, cost: 600 },
+  { name: "Light bulbs", room: "General", priority: 1, cost: 600, scale: "room", extraRooms:3, quantityEditable: true, },
   { name: "Trash bins", room: "General", priority: 2, cost: 500 },
   { name: "Vacuum cleaner", room: "General", priority: 2, cost: 4000 },
   { name: "Iron", room: "General", priority: 3, cost: 3000 },
@@ -77,4 +80,6 @@ export const BASE_TEMPLATE: TemplateItem[] = [
   { name: "Pet toys", room: "Pet", priority: 4, cost: 400, onlyIf: { hasPet: true } },
   { name: "Lint roller", room: "Pet", priority: 4, cost: 100, onlyIf: { hasPet: true } },
 ];
+
+
 

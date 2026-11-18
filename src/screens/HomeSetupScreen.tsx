@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QuantityStepper from "../components/QuantityStepper";
 import {
   View,
   Text,
@@ -36,7 +37,7 @@ const OWNED_OPTIONS = [
   "TV",
   "kitchenware",
   "bedding",
-];
+];  
 
 const HOME_TYPE_IMAGES: Record<HomeType, number> = {
   studio: require("../../assets/images/type-studio.jpg"),
@@ -82,7 +83,15 @@ export default function HomeSetupScreen({ onSaved }: Props) {
   const [loading, setLoading] = useState(false);
   const [layout, setLayout] = useState("1+1");
   const [hasBalcony, setHasBalcony] = useState(false);
+  const [singleBeds, setSingleBeds] = useState(1);
+  const [doubleBeds, setDoubleBeds] = useState(0);
+  const [bedsTouched, setBedsTouched] = useState(false);
 
+  useEffect(() => {
+    if (!bedsTouched) {
+      setSingleBeds(Math.max(1, Number(peopleCount) || 1));
+    }
+  }, [peopleCount, bedsTouched]);
   const toggleOwned = (item: string) => {
     setOwnedItems((prev) =>
       prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item],
@@ -129,6 +138,8 @@ export default function HomeSetupScreen({ onSaved }: Props) {
         ownedItems,
         hasGarden,
         hasBalcony,
+        singleBeds,
+        doubleBeds,
       });
 
       onSaved(home);
@@ -229,6 +240,31 @@ export default function HomeSetupScreen({ onSaved }: Props) {
           >
             <Text style={styles.counterButtonText}>+</Text>
           </TouchableOpacity>
+        </View>
+                <Text style={[styles.fieldLabel, styles.fieldGap]}>Beds you need</Text>
+        <View style={styles.bedRow}>
+          <Text style={styles.bedLabel}>Single beds</Text>
+          <QuantityStepper
+            value={singleBeds}
+            min={0}
+            max={10}
+            onChange={(v) => {
+              setBedsTouched(true);
+              setSingleBeds(v);
+            }}
+          />
+        </View>
+        <View style={styles.bedRow}>
+          <Text style={styles.bedLabel}>Double beds</Text>
+          <QuantityStepper
+            value={doubleBeds}
+            min={0}
+            max={10}
+            onChange={(v) => {
+              setBedsTouched(true);
+              setDoubleBeds(v);
+            }}
+          />
         </View>
 
         <Text style={[styles.fieldLabel, styles.fieldGap]}>Budget (₺)</Text>
@@ -552,4 +588,11 @@ const styles = StyleSheet.create({
     width: "100%",
     ...cardShadow,
   },
+  bedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+  },
+  bedLabel: { fontSize: fontSize.lg, color: colors.text },
 });

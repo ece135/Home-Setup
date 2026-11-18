@@ -57,7 +57,7 @@ export async function addNeed(home: Home, input: NewNeedInput): Promise<Need> {
 
 export async function updateNeed(
   id: string,
-  changes: Partial<Pick<Need, "status" | "estimatedCost" | "selectedOption" | "priority" | "autoDeferred" | "searchTerm">>
+  changes: Partial<Pick<Need, "status" | "estimatedCost" | "selectedOption" | "priority" | "autoDeferred" | "searchTerm" | "quantity" | "unitCost">>
 ): Promise<void> {
   await updateDoc(doc(db, "needs", id), changes);
 }

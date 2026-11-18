@@ -19,6 +19,8 @@ export interface Home {
   ownedItems: string[];
   createdAt: number;
   hasBalcony: boolean;
+  singleBeds?: number;
+  doubleBeds?: number;
 }
 
 export interface Room {
@@ -44,6 +46,9 @@ export interface Need {
   reason?: string;
   autoDeferred?: boolean;
   searchTerm?: string;
+  quantity?: number;
+  unitCost?: number;
+  quantityEditable?: boolean;
 }
 
 export interface Expense {
